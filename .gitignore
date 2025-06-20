@@ -1,0 +1,15 @@
+# UE5 核心排除项
+/Binaries
+/Intermediate
+/Saved
+/DerivedDataCache
+*.sln
+*.DotSettings
+
+# 插件缓存
+/Plugins/*/Binaries
+/Plugins/*/Intermediate
+
+# 临时文件
+*.log
+*.opendb
