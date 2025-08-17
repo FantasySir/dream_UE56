@@ -3,8 +3,8 @@
 /Intermediate
 /Saved
 /DerivedDataCache
-*.sln
-*.DotSettings
+Build
+
 
 # 插件缓存
 /Plugins/*/Binaries
@@ -13,3 +13,16 @@
 # 临时文件
 *.log
 *.opendb
+
+#CPP相关
+.vscode
+.vs
+*.VC.db
+*.opensdf
+*.opendb
+*.sdf
+*.sln
+*.suo
+*.xcodeproj
+*.xcworkspace
+*.DotSettings
