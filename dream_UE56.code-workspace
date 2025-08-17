@@ -1,0 +1,643 @@
+{
+	"folders": [
+		{
+			"name": "dream_UE56",
+			"path": "."
+		},
+		{
+			"name": "UE5",
+			"path": "F:\\UnrealEngine\\UE_5.6"
+		}
+	],
+	"settings": {
+		"typescript.tsc.autoDetect": "off",
+		"npm.autoDetect": "off",
+		"terminal.integrated.env.windows": {
+			"PATH": "F:\\UnrealEngine\\UE_5.6\\Engine\\Binaries\\ThirdParty\\DotNet\\8.0.300\\win-x64;${env:PATH}",
+			"DOTNET_ROOT": "F:\\UnrealEngine\\UE_5.6\\Engine\\Binaries\\ThirdParty\\DotNet\\8.0.300\\win-x64",
+			"DOTNET_HOST_PATH": "F:\\UnrealEngine\\UE_5.6\\Engine\\Binaries\\ThirdParty\\DotNet\\8.0.300\\win-x64\\dotnet.exe",
+			"DOTNET_MULTILEVEL_LOOKUP": "0",
+			"DOTNET_ROLL_FORWARD": "LatestMajor"
+		}
+	},
+	"extensions": {
+		"recommendations": [
+			"ms-vscode.cpptools",
+			"ms-dotnettools.csharp"
+		]
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"label": "dream_UE56 Win64 Debug Build",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"dream_UE56",
+					"Win64",
+					"Debug",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56 Win64 Debug Rebuild",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"dream_UE56",
+					"Win64",
+					"Debug",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"dream_UE56 Win64 Debug Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56 Win64 Debug Clean",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Clean.bat",
+				"args": [
+					"dream_UE56",
+					"Win64",
+					"Debug",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56 Win64 DebugGame Build",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"dream_UE56",
+					"Win64",
+					"DebugGame",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56 Win64 DebugGame Rebuild",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"dream_UE56",
+					"Win64",
+					"DebugGame",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"dream_UE56 Win64 DebugGame Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56 Win64 DebugGame Clean",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Clean.bat",
+				"args": [
+					"dream_UE56",
+					"Win64",
+					"DebugGame",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56 Win64 Development Build",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"dream_UE56",
+					"Win64",
+					"Development",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56 Win64 Development Rebuild",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"dream_UE56",
+					"Win64",
+					"Development",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"dream_UE56 Win64 Development Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56 Win64 Development Clean",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Clean.bat",
+				"args": [
+					"dream_UE56",
+					"Win64",
+					"Development",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56 Win64 Test Build",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"dream_UE56",
+					"Win64",
+					"Test",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56 Win64 Test Rebuild",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"dream_UE56",
+					"Win64",
+					"Test",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"dream_UE56 Win64 Test Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56 Win64 Test Clean",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Clean.bat",
+				"args": [
+					"dream_UE56",
+					"Win64",
+					"Test",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56 Win64 Shipping Build",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"dream_UE56",
+					"Win64",
+					"Shipping",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56 Win64 Shipping Rebuild",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"dream_UE56",
+					"Win64",
+					"Shipping",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"dream_UE56 Win64 Shipping Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56 Win64 Shipping Clean",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Clean.bat",
+				"args": [
+					"dream_UE56",
+					"Win64",
+					"Shipping",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56Editor Win64 Debug Build",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"dream_UE56Editor",
+					"Win64",
+					"Debug",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56Editor Win64 Debug Rebuild",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"dream_UE56Editor",
+					"Win64",
+					"Debug",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"dream_UE56Editor Win64 Debug Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56Editor Win64 Debug Clean",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Clean.bat",
+				"args": [
+					"dream_UE56Editor",
+					"Win64",
+					"Debug",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56Editor Win64 DebugGame Build",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"dream_UE56Editor",
+					"Win64",
+					"DebugGame",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56Editor Win64 DebugGame Rebuild",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"dream_UE56Editor",
+					"Win64",
+					"DebugGame",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"dream_UE56Editor Win64 DebugGame Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56Editor Win64 DebugGame Clean",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Clean.bat",
+				"args": [
+					"dream_UE56Editor",
+					"Win64",
+					"DebugGame",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56Editor Win64 Development Build",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"dream_UE56Editor",
+					"Win64",
+					"Development",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56Editor Win64 Development Rebuild",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Build.bat",
+				"args": [
+					"dream_UE56Editor",
+					"Win64",
+					"Development",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"dream_UE56Editor Win64 Development Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"label": "dream_UE56Editor Win64 Development Clean",
+				"group": "build",
+				"command": "Engine\\Build\\BatchFiles\\Clean.bat",
+				"args": [
+					"dream_UE56Editor",
+					"Win64",
+					"Development",
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "F:\\UnrealEngine\\UE_5.6"
+				}
+			}
+		]
+	},
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"name": "Launch dream_UE56 (Debug)",
+				"request": "launch",
+				"program": "F:\\UEproject\\dream_UE56\\Binaries\\Win64\\UnrealGame-Win64-Debug.exe",
+				"preLaunchTask": "dream_UE56 Win64 Debug Build",
+				"args": [
+				],
+				"cwd": "F:\\UnrealEngine\\UE_5.6",
+				"stopAtEntry": false,
+				"console": "integratedTerminal",
+				"type": "cppvsdbg",
+				"visualizerFile": "F:\\UnrealEngine\\UE_5.6\\Engine\\Extras\\VisualStudioDebugging\\Unreal.natvis",
+				"sourceFileMap": {
+					"D:\\build\\++UE5\\Sync": "F:\\UnrealEngine\\UE_5.6",
+					"Z:\\UEVFS\\dream_UE56": "F:\\UEproject\\dream_UE56",
+					"Z:\\UEVFS\\Root": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"name": "Launch dream_UE56 (DebugGame)",
+				"request": "launch",
+				"program": "F:\\UEproject\\dream_UE56\\Binaries\\Win64\\UnrealGame-Win64-DebugGame.exe",
+				"preLaunchTask": "dream_UE56 Win64 DebugGame Build",
+				"args": [
+				],
+				"cwd": "F:\\UnrealEngine\\UE_5.6",
+				"stopAtEntry": false,
+				"console": "integratedTerminal",
+				"type": "cppvsdbg",
+				"visualizerFile": "F:\\UnrealEngine\\UE_5.6\\Engine\\Extras\\VisualStudioDebugging\\Unreal.natvis",
+				"sourceFileMap": {
+					"D:\\build\\++UE5\\Sync": "F:\\UnrealEngine\\UE_5.6",
+					"Z:\\UEVFS\\dream_UE56": "F:\\UEproject\\dream_UE56",
+					"Z:\\UEVFS\\Root": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"name": "Launch dream_UE56 (Development)",
+				"request": "launch",
+				"program": "F:\\UEproject\\dream_UE56\\Binaries\\Win64\\UnrealGame.exe",
+				"preLaunchTask": "dream_UE56 Win64 Development Build",
+				"args": [
+				],
+				"cwd": "F:\\UnrealEngine\\UE_5.6",
+				"stopAtEntry": false,
+				"console": "integratedTerminal",
+				"type": "cppvsdbg",
+				"visualizerFile": "F:\\UnrealEngine\\UE_5.6\\Engine\\Extras\\VisualStudioDebugging\\Unreal.natvis",
+				"sourceFileMap": {
+					"D:\\build\\++UE5\\Sync": "F:\\UnrealEngine\\UE_5.6",
+					"Z:\\UEVFS\\dream_UE56": "F:\\UEproject\\dream_UE56",
+					"Z:\\UEVFS\\Root": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"name": "Launch dream_UE56 (Test)",
+				"request": "launch",
+				"program": "F:\\UEproject\\dream_UE56\\Binaries\\Win64\\UnrealGame-Win64-Test.exe",
+				"preLaunchTask": "dream_UE56 Win64 Test Build",
+				"args": [
+				],
+				"cwd": "F:\\UnrealEngine\\UE_5.6",
+				"stopAtEntry": false,
+				"console": "integratedTerminal",
+				"type": "cppvsdbg",
+				"visualizerFile": "F:\\UnrealEngine\\UE_5.6\\Engine\\Extras\\VisualStudioDebugging\\Unreal.natvis",
+				"sourceFileMap": {
+					"D:\\build\\++UE5\\Sync": "F:\\UnrealEngine\\UE_5.6",
+					"Z:\\UEVFS\\dream_UE56": "F:\\UEproject\\dream_UE56",
+					"Z:\\UEVFS\\Root": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"name": "Launch dream_UE56 (Shipping)",
+				"request": "launch",
+				"program": "F:\\UEproject\\dream_UE56\\Binaries\\Win64\\UnrealGame-Win64-Shipping.exe",
+				"preLaunchTask": "dream_UE56 Win64 Shipping Build",
+				"args": [
+				],
+				"cwd": "F:\\UnrealEngine\\UE_5.6",
+				"stopAtEntry": false,
+				"console": "integratedTerminal",
+				"type": "cppvsdbg",
+				"visualizerFile": "F:\\UnrealEngine\\UE_5.6\\Engine\\Extras\\VisualStudioDebugging\\Unreal.natvis",
+				"sourceFileMap": {
+					"D:\\build\\++UE5\\Sync": "F:\\UnrealEngine\\UE_5.6",
+					"Z:\\UEVFS\\dream_UE56": "F:\\UEproject\\dream_UE56",
+					"Z:\\UEVFS\\Root": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"name": "Launch dream_UE56Editor (Debug)",
+				"request": "launch",
+				"program": "F:\\UnrealEngine\\UE_5.6\\Engine\\Binaries\\Win64\\UnrealEditor-Win64-Debug.exe",
+				"preLaunchTask": "dream_UE56Editor Win64 Debug Build",
+				"args": [
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject"
+				],
+				"cwd": "F:\\UnrealEngine\\UE_5.6",
+				"stopAtEntry": false,
+				"console": "integratedTerminal",
+				"type": "cppvsdbg",
+				"visualizerFile": "F:\\UnrealEngine\\UE_5.6\\Engine\\Extras\\VisualStudioDebugging\\Unreal.natvis",
+				"sourceFileMap": {
+					"D:\\build\\++UE5\\Sync": "F:\\UnrealEngine\\UE_5.6",
+					"Z:\\UEVFS\\dream_UE56": "F:\\UEproject\\dream_UE56",
+					"Z:\\UEVFS\\Root": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"name": "Launch dream_UE56Editor (DebugGame)",
+				"request": "launch",
+				"program": "F:\\UnrealEngine\\UE_5.6\\Engine\\Binaries\\Win64\\UnrealEditor-Win64-DebugGame.exe",
+				"preLaunchTask": "dream_UE56Editor Win64 DebugGame Build",
+				"args": [
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject"
+				],
+				"cwd": "F:\\UnrealEngine\\UE_5.6",
+				"stopAtEntry": false,
+				"console": "integratedTerminal",
+				"type": "cppvsdbg",
+				"visualizerFile": "F:\\UnrealEngine\\UE_5.6\\Engine\\Extras\\VisualStudioDebugging\\Unreal.natvis",
+				"sourceFileMap": {
+					"D:\\build\\++UE5\\Sync": "F:\\UnrealEngine\\UE_5.6",
+					"Z:\\UEVFS\\dream_UE56": "F:\\UEproject\\dream_UE56",
+					"Z:\\UEVFS\\Root": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"name": "Launch dream_UE56Editor (Development)",
+				"request": "launch",
+				"program": "F:\\UnrealEngine\\UE_5.6\\Engine\\Binaries\\Win64\\UnrealEditor.exe",
+				"preLaunchTask": "dream_UE56Editor Win64 Development Build",
+				"args": [
+					"F:\\UEproject\\dream_UE56\\dream_UE56.uproject"
+				],
+				"cwd": "F:\\UnrealEngine\\UE_5.6",
+				"stopAtEntry": false,
+				"console": "integratedTerminal",
+				"type": "cppvsdbg",
+				"visualizerFile": "F:\\UnrealEngine\\UE_5.6\\Engine\\Extras\\VisualStudioDebugging\\Unreal.natvis",
+				"sourceFileMap": {
+					"D:\\build\\++UE5\\Sync": "F:\\UnrealEngine\\UE_5.6",
+					"Z:\\UEVFS\\dream_UE56": "F:\\UEproject\\dream_UE56",
+					"Z:\\UEVFS\\Root": "F:\\UnrealEngine\\UE_5.6"
+				}
+			},
+			{
+				"name": "Generate Project Files",
+				"type": "coreclr",
+				"request": "launch",
+				"preLaunchTask": "UnrealBuildTool Win64 Development Build",
+				"program": "F:\\UnrealEngine\\UE_5.6\\Engine\\Build\\BatchFiles\\RunUBT.bat",
+				"args": [
+					"-projectfiles",
+					"-vscode",
+					"-project=F:\\UEproject\\dream_UE56\\dream_UE56.uproject",
+					"-game",
+					"-engine",
+					"-dotnet"
+				],
+				"env": {
+					"PATH": "F:\\UnrealEngine\\UE_5.6\\Engine\\Binaries\\ThirdParty\\DotNet\\8.0.300\\win-x64;${env:PATH}",
+					"DOTNET_ROOT": "F:\\UnrealEngine\\UE_5.6\\Engine\\Binaries\\ThirdParty\\DotNet\\8.0.300\\win-x64",
+					"DOTNET_HOST_PATH": "F:\\UnrealEngine\\UE_5.6\\Engine\\Binaries\\ThirdParty\\DotNet\\8.0.300\\win-x64\\dotnet.exe",
+					"DOTNET_MULTILEVEL_LOOKUP": "0",
+					"DOTNET_ROLL_FORWARD": "LatestMajor"
+				},
+				"console": "integratedTerminal",
+				"stopAtEntry": false,
+				"cwd": "F:\\UnrealEngine\\UE_5.6"
+			}
+		]
+	}
+}
