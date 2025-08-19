@@ -8,7 +8,21 @@ public class dream_UE56 : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "GameplayAbilities" });
+		PublicDependencyModuleNames.AddRange(new string[] { 
+			"Core", 
+			"CoreUObject", 
+			"Engine", 
+			"InputCore", 
+			"EnhancedInput", 
+			"GameplayAbilities", 
+			"GameplayTags", 
+			"GameplayTasks",
+			"AIModule",
+			"NavigationSystem",
+			"UMG",
+			"Slate",
+			"SlateCore"
+		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
 
