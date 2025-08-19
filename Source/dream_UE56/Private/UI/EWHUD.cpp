@@ -4,7 +4,10 @@
 #include "UI/EWUserWidget.h"
 #include "UI/EWWidgetController.h"
 #include "Character/EWCharacterBase.h"
+#include "Character/EWUnitAttributeSet.h"
 #include "Player/EWUnitManager.h"
+#include "AttributeSet.h"
+#include "GameFramework/PlayerState.h"
 
 void AEWHUD::BeginPlay()
 {
@@ -83,7 +86,7 @@ void AEWHUD::ShowAttributeMenu()
 			if (AEWCharacterBase* Character = Cast<AEWCharacterBase>(PC->GetPawn()))
 			{
 				UAbilitySystemComponent* ASC = Character->GetAbilitySystemComponent();
-				UAttributeSet* AS = Character->GetAttributeSet();
+				UAttributeSet* AS = Cast<UAttributeSet>(Character->GetAttributeSet());
 				
 				const FWidgetControllerParams WCParams(PC, PS, ASC, AS);
 				UEWAttributeMenuWidgetController* WidgetController = GetAttributeMenuWidgetController(WCParams);
@@ -104,7 +107,7 @@ void AEWHUD::HideAttributeMenu()
 {
 	if (AttributeMenuWidget)
 	{
-		AttributeMenuWidget->RemoveFromViewport();
+		AttributeMenuWidget->RemoveFromParent();
 	}
 }
 
@@ -136,7 +139,7 @@ void AEWHUD::ShowUnitManagement()
 			if (AEWCharacterBase* Character = Cast<AEWCharacterBase>(PC->GetPawn()))
 			{
 				UAbilitySystemComponent* ASC = Character->GetAbilitySystemComponent();
-				UAttributeSet* AS = Character->GetAttributeSet();
+				UAttributeSet* AS = Cast<UAttributeSet>(Character->GetAttributeSet());
 				
 				const FWidgetControllerParams WCParams(PC, PS, ASC, AS);
 				UEWUnitManagementWidgetController* WidgetController = GetUnitManagementWidgetController(WCParams);
@@ -157,7 +160,7 @@ void AEWHUD::HideUnitManagement()
 {
 	if (UnitManagementWidget)
 	{
-		UnitManagementWidget->RemoveFromViewport();
+		UnitManagementWidget->RemoveFromParent();
 	}
 }
 

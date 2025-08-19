@@ -77,7 +77,7 @@ public:
 
 	// 初始化管理器
 	UFUNCTION(BlueprintCallable, Category = "Unit Manager")
-	void Initialize(int32 TotalSlots, int32 BattleSlots);
+	void Initialize(int32 TotalSlots, int32 MaxBattleSlotsCount);
 
 	// 获取配置参数
 	UFUNCTION(BlueprintCallable, Category = "Unit Manager")
@@ -132,6 +132,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Battle Summoning")
 	TArray<AEWUnitBase*> SummonBattleUnits(UWorld* World, const TArray<FVector>& SpawnLocations, AActor* Owner);
 
+	// 获取已召唤的单位（蓝图可用）
+	UFUNCTION(BlueprintCallable, Category = "Battle Summoning")
+	TArray<AEWUnitBase*> GetSummonedUnits() const;
+
 	// 单位状态更新
 	UFUNCTION(BlueprintCallable, Category = "Unit Status")
 	void UpdateUnitStatus(int32 SlotIndex, float HealthPercentage, float ManaPercentage);
@@ -185,8 +189,7 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "Battle Data")
 	TArray<FUnitSlotData> BattleSlots;
 
-	// 已召唤的单位实例（用于跟踪）
-	UPROPERTY(BlueprintReadOnly, Category = "Battle Data")
+	// 已召唤的单位实例（用于跟踪）- 不暴露给蓝图
 	TArray<TWeakObjectPtr<AEWUnitBase>> SummonedUnits;
 
 private:

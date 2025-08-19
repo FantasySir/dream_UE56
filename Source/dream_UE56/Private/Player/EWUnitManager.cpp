@@ -2,6 +2,7 @@
 
 #include "Player/EWUnitManager.h"
 #include "Character/EWUnitBase.h"
+#include "Character/EWUnitAttributeSet.h"
 #include "Engine/World.h"
 
 UEWUnitManager::UEWUnitManager()
@@ -12,10 +13,10 @@ UEWUnitManager::UEWUnitManager()
 	ManaRestoreCostPerPercent = 0.5f;
 }
 
-void UEWUnitManager::Initialize(int32 TotalSlots, int32 BattleSlots)
+void UEWUnitManager::Initialize(int32 TotalSlots, int32 MaxBattleSlotsCount)
 {
 	MaxTotalSlots = TotalSlots;
-	MaxBattleSlots = BattleSlots;
+	MaxBattleSlots = MaxBattleSlotsCount;
 	UnitSlots.SetNum(MaxTotalSlots);
 	BattleSlots.SetNum(MaxBattleSlots);
 }
@@ -195,6 +196,19 @@ int32 UEWUnitManager::GetUnlockedSlotCount() const
 
 void UEWUnitManager::SaveToGameInstance() {}
 void UEWUnitManager::LoadFromGameInstance() {}
+
+TArray<AEWUnitBase*> UEWUnitManager::GetSummonedUnits() const
+{
+	TArray<AEWUnitBase*> ValidUnits;
+	for (const TWeakObjectPtr<AEWUnitBase>& WeakUnit : SummonedUnits)
+	{
+		if (AEWUnitBase* Unit = WeakUnit.Get())
+		{
+			ValidUnits.Add(Unit);
+		}
+	}
+	return ValidUnits;
+}
 
 bool UEWUnitManager::IsValidSlotIndex(int32 SlotIndex) const
 {

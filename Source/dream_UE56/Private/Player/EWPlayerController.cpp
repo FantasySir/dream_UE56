@@ -8,6 +8,7 @@
 #include "InputMappingContext.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
+#include "EngineUtils.h"
 
 AEWPlayerController::AEWPlayerController()
 {
@@ -121,8 +122,8 @@ void AEWPlayerController::Look(const FInputActionValue& Value)
 	if (APawn* ControlledPawn = GetPawn())
 	{
 		// 检查是否在锁定模式
-		AEWCharacterBase* Character = GetControlledCharacter();
-		if (Character && Character->GetLockedTarget())
+		AEWCharacterBase* EWCharacter = GetControlledCharacter();
+		if (EWCharacter && EWCharacter->GetLockedTarget())
 		{
 			LockLook(Value);
 		}
@@ -137,16 +138,16 @@ void AEWPlayerController::Look(const FInputActionValue& Value)
 
 void AEWPlayerController::LockTarget(const FInputActionValue& Value)
 {
-	AEWCharacterBase* Character = GetControlledCharacter();
-	if (!Character)
+	AEWCharacterBase* EWCharacter = GetControlledCharacter();
+	if (!EWCharacter)
 	{
 		return;
 	}
 
 	// 如果已经锁定了目标，则解锁
-	if (Character->GetLockedTarget())
+	if (EWCharacter->GetLockedTarget())
 	{
-		Character->UnlockTarget();
+		EWCharacter->UnlockTarget();
 		return;
 	}
 
@@ -154,34 +155,34 @@ void AEWPlayerController::LockTarget(const FInputActionValue& Value)
 	AEWUnitBase* Target = FindNearestLockableTarget();
 	if (Target)
 	{
-		Character->LockTarget(Target);
+		EWCharacter->LockTarget(Target);
 	}
 }
 
 void AEWPlayerController::UnlockTarget(const FInputActionValue& Value)
 {
-	AEWCharacterBase* Character = GetControlledCharacter();
-	if (Character)
+	AEWCharacterBase* EWCharacter = GetControlledCharacter();
+	if (EWCharacter)
 	{
-		Character->UnlockTarget();
+		EWCharacter->UnlockTarget();
 	}
 }
 
 void AEWPlayerController::PauseTime(const FInputActionValue& Value)
 {
-	AEWCharacterBase* Character = GetControlledCharacter();
-	if (Character && Character->CanPauseTime())
+	AEWCharacterBase* EWCharacter = GetControlledCharacter();
+	if (EWCharacter && EWCharacter->CanPauseTime())
 	{
-		Character->PauseTime();
+		EWCharacter->PauseTime();
 	}
 }
 
 void AEWPlayerController::ResumeTime(const FInputActionValue& Value)
 {
-	AEWCharacterBase* Character = GetControlledCharacter();
-	if (Character)
+	AEWCharacterBase* EWCharacter = GetControlledCharacter();
+	if (EWCharacter)
 	{
-		Character->ResumeTime();
+		EWCharacter->ResumeTime();
 	}
 }
 
@@ -229,8 +230,8 @@ void AEWPlayerController::CastSkill4(const FInputActionValue& Value)
 
 AEWUnitBase* AEWPlayerController::FindNearestLockableTarget()
 {
-	AEWCharacterBase* Character = GetControlledCharacter();
-	if (!Character)
+	AEWCharacterBase* EWCharacter = GetControlledCharacter();
+	if (!EWCharacter)
 	{
 		return nullptr;
 	}
@@ -241,7 +242,7 @@ AEWUnitBase* AEWPlayerController::FindNearestLockableTarget()
 		return nullptr;
 	}
 
-	FVector CharacterLocation = Character->GetActorLocation();
+	FVector CharacterLocation = EWCharacter->GetActorLocation();
 	AEWUnitBase* NearestTarget = nullptr;
 	float NearestDistance = LockRange;
 
@@ -249,7 +250,7 @@ AEWUnitBase* AEWPlayerController::FindNearestLockableTarget()
 	for (TActorIterator<AEWUnitBase> ActorItr(World); ActorItr; ++ActorItr)
 	{
 		AEWUnitBase* Unit = *ActorItr;
-		if (!Unit || Unit == Character || !Unit->IsAlive())
+		if (!Unit || Unit == static_cast<AActor*>(EWCharacter) || !Unit->IsAlive())
 		{
 			continue;
 		}
@@ -274,8 +275,8 @@ void AEWPlayerController::LockLook(const FInputActionValue& Value)
 {
 	// 锁定模式下的相机控制
 	// 这里可以实现围绕锁定目标的相机控制逻辑
-	AEWCharacterBase* Character = GetControlledCharacter();
-	if (!Character || !Character->GetLockedTarget())
+	AEWCharacterBase* EWCharacter = GetControlledCharacter();
+	if (!EWCharacter || !EWCharacter->GetLockedTarget())
 	{
 		return;
 	}

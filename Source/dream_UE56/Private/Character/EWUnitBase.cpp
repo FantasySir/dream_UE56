@@ -6,6 +6,12 @@
 #include "AbilitySystemComponent.h"
 #include "Abilities/GameplayAbility.h"
 #include "GameplayEffect.h"
+#include "AIController.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "BehaviorTree/BehaviorTreeComponent.h"
+#include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTree/BlackboardData.h"
+#include "BrainComponent.h"
 
 // Sets default values
 AEWUnitBase::AEWUnitBase()
@@ -224,11 +230,11 @@ float AEWUnitBase::GetMagicalDefense() const
 	return 0.0f;
 }
 
-int32 AEWUnitBase::GetLevel() const
+int32 AEWUnitBase::GetUnitLevel() const
 {
 	if (AttributeSet)
 	{
-		return FMath::RoundToInt(AttributeSet->GetLevel());
+		return FMath::RoundToInt(AttributeSet->GetUnitLevel());
 	}
 	return 1;
 }
@@ -273,7 +279,7 @@ void AEWUnitBase::SetCurrentState(EUnitState NewState)
 		}
 		if (NewState == EUnitState::Dead)
 		{
-			OnDeath();
+			HandleDeath();
 		}
 	}
 }
@@ -298,34 +304,13 @@ void AEWUnitBase::StopAI()
 	}
 }
 
-void AEWUnitBase::TakeDamage(float DamageAmount, AEWUnitBase* DamageSource)
-{
-	if (!IsAlive() || DamageAmount <= 0.0f)
-		return;
-	if (AbilitySystemComponent && AttributeSet)
-	{
-		float CurrentHealth = GetHealth();
-		float NewHealth = FMath::Max(0.0f, CurrentHealth - DamageAmount);
-		const_cast<UEWUnitAttributeSet*>(AttributeSet)->SetHealth(NewHealth);
-		OnHealthChanged.Broadcast(this, NewHealth);
-		if (NewHealth <= 0.0f)
-		{
-			SetCurrentState(EUnitState::Dead);
-		}
-		else if (CurrentState != EUnitState::Combat)
-		{
-			SetCurrentState(EUnitState::Combat);
-		}
-	}
-}
-
 void AEWUnitBase::AttackTarget(AEWUnitBase* Target)
 {
 	if (!CanAttack(Target))
 		return;
 	LastAttackTime = GetWorld()->GetTimeSeconds();
 	float DamageAmount = GetPhysicalAttack();
-	Target->TakeDamage(DamageAmount, this);
+	Target->TakeDamageFromUnit(DamageAmount, this);
 	if (AttributeSet)
 	{
 		float CurrentMana = GetMana();
@@ -376,7 +361,7 @@ void AEWUnitBase::CastRandomSkill()
 	}
 }
 
-void AEWUnitBase::OnDeath()
+void AEWUnitBase::HandleDeath()
 {
 	StopAI();
 	OnDeath.Broadcast(this);
@@ -390,6 +375,36 @@ void AEWUnitBase::OnHealthAttributeChanged(const FGameplayAttribute& Attribute, 
 	if (NewValue <= 0.0f && IsAlive())
 	{
 		SetCurrentState(EUnitState::Dead);
+	}
+}
+
+float AEWUnitBase::TakeDamage(float Damage, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	float ActualDamage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+	
+	// 转换为我们的单位系统
+	AEWUnitBase* DamageSourceUnit = Cast<AEWUnitBase>(DamageCauser);
+	TakeDamageFromUnit(ActualDamage, DamageSourceUnit);
+	
+	return ActualDamage;
+}
+
+void AEWUnitBase::TakeDamageFromUnit(float DamageAmount, AEWUnitBase* DamageSource)
+{
+	if (!IsAlive() || DamageAmount <= 0.0f) return;
+
+	// 通过GAS应用伤害
+	if (AbilitySystemComponent && AttributeSet)
+	{
+		// 这里可以创建一个伤害GameplayEffect来应用伤害
+		// 暂时直接修改属性
+		float NewHealth = FMath::Max(0.0f, GetHealth() - DamageAmount);
+		
+		// 触发伤害事件
+		OnDamaged.Broadcast(this, DamageAmount, DamageSource);
+		
+		UE_LOG(LogTemp, Warning, TEXT("Unit %s took %f damage from %s"), 
+			*GetName(), DamageAmount, DamageSource ? *DamageSource->GetName() : TEXT("Unknown"));
 	}
 }
 

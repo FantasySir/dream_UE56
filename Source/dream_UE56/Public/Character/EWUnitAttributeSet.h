@@ -90,9 +90,9 @@ public:
 	ATTRIBUTE_ACCESSORS(UEWUnitAttributeSet, MovementSpeed)
 
 	// 等级
-	UPROPERTY(BlueprintReadOnly, Category = "Level", ReplicatedUsing = OnRep_Level)
-	FGameplayAttributeData Level;
-	ATTRIBUTE_ACCESSORS(UEWUnitAttributeSet, Level)
+	UPROPERTY(BlueprintReadOnly, Category = "Level", ReplicatedUsing = OnRep_UnitLevel)
+	FGameplayAttributeData UnitLevel;
+	ATTRIBUTE_ACCESSORS(UEWUnitAttributeSet, UnitLevel)
 
 	// 临时属性（用于计算伤害等）
 	UPROPERTY(BlueprintReadOnly, Category = "Meta")
@@ -146,7 +146,7 @@ protected:
 	virtual void OnRep_MovementSpeed(const FGameplayAttributeData& OldMovementSpeed);
 
 	UFUNCTION()
-	virtual void OnRep_Level(const FGameplayAttributeData& OldLevel);
+	virtual void OnRep_UnitLevel(const FGameplayAttributeData& OldUnitLevel);
 
 	// 限制属性不超过最大值的辅助函数
 	void AdjustAttributeForMaxChange(const FGameplayAttributeData& AffectedAttribute, const FGameplayAttributeData& MaxAttribute, float NewMaxValue, const FGameplayAttribute& AffectedAttributeProperty);

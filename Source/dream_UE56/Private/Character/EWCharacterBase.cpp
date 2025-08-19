@@ -16,7 +16,7 @@ AEWCharacterBase::AEWCharacterBase()
 	PrimaryActorTick.bCanEverTick = true;
 
 	// 创建能力系统组件
-	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>("AbilitySystemComponent");
 	AbilitySystemComponent->SetIsReplicated(true);
 	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 
@@ -94,7 +94,7 @@ void AEWCharacterBase::InitializeAbilitySystem()
 		// 给予起始能力
 		for (TSubclassOf<UGameplayAbility>& StartupAbility : StartupAbilities)
 		{
-			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(StartupAbility, 1, static_cast<int32>(StartupAbility.GetDefaultObject()->AbilityInputID), this));
+			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(StartupAbility, 1, INDEX_NONE, this));
 		}
 	}
 }
@@ -224,7 +224,7 @@ void AEWCharacterBase::ResumeTime()
 
 void AEWCharacterBase::LockTarget(AEWUnitBase* Target)
 {
-	if (Target && Target != this)
+	if (Target && Target != static_cast<AActor*>(this))
 	{
 		LockedTarget = Target;
 		// 这里可以添加锁定UI或相机行为

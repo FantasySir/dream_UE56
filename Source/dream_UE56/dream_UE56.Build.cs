@@ -15,16 +15,12 @@ public class dream_UE56 : ModuleRules
 			"InputCore", 
 			"EnhancedInput", 
 			"GameplayAbilities", 
-			"GameplayTags", 
-			"GameplayTasks",
-			"AIModule",
-			"NavigationSystem",
 			"UMG",
 			"Slate",
 			"SlateCore"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { });
+		PrivateDependencyModuleNames.AddRange(new string[] {  "GameplayTags", "GameplayTasks", "NavigationSystem", "Niagara", "AIModule" });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

@@ -2,6 +2,7 @@
 
 #include "UI/EWUserWidget.h"
 #include "Player/EWUnitManager.h"
+#include "Character/EWUnitBase.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
 #include "Blueprint/DragDropOperation.h"
@@ -156,13 +157,13 @@ bool UEWBattleSlotWidget::NativeOnDrop(const FGeometry& InGeometry, const FDragD
 			{
 				// 如果是战斗槽之间的拖拽，交换位置
 				FUnitSlotData TempData = UnitData;
-				SetUnitSlotData(SourceBattleWidget->UnitData);
+				SetUnitSlotData(SourceBattleWidget->GetUnitData());
 				SourceBattleWidget->SetUnitSlotData(TempData);
 			}
 			else
 			{
 				// 如果是从普通槽拖拽到战斗槽，设置单位
-				SetUnitSlotData(SourceWidget->UnitData);
+				SetUnitSlotData(SourceWidget->GetUnitData());
 			}
 			
 			OnDragEnded();

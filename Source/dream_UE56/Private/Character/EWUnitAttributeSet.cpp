@@ -22,7 +22,7 @@ UEWUnitAttributeSet::UEWUnitAttributeSet()
 	InitPhysicalDefense(5.0f);
 	InitMagicalDefense(5.0f);
 	InitMovementSpeed(600.0f);
-	InitLevel(1.0f);
+	InitUnitLevel(1.0f);
 	InitDamage(0.0f);
 	InitHealing(0.0f);
 }
@@ -73,7 +73,7 @@ void UEWUnitAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute
 	{
 		NewValue = FMath::Max(NewValue, 0.0f);
 	}
-	else if (Attribute == GetLevelAttribute())
+	else if (Attribute == GetUnitLevelAttribute())
 	{
 		NewValue = FMath::Max(NewValue, 1.0f);
 	}
@@ -178,7 +178,7 @@ void UEWUnitAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME_CONDITION_NOTIFY(UEWUnitAttributeSet, PhysicalDefense, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UEWUnitAttributeSet, MagicalDefense, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(UEWUnitAttributeSet, MovementSpeed, COND_None, REPNOTIFY_Always);
-	DOREPLIFETIME_CONDITION_NOTIFY(UEWUnitAttributeSet, Level, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(UEWUnitAttributeSet, UnitLevel, COND_None, REPNOTIFY_Always);
 }
 
 // 所有属性的OnRep函数
@@ -247,9 +247,9 @@ void UEWUnitAttributeSet::OnRep_MovementSpeed(const FGameplayAttributeData& OldM
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UEWUnitAttributeSet, MovementSpeed, OldMovementSpeed);
 }
 
-void UEWUnitAttributeSet::OnRep_Level(const FGameplayAttributeData& OldLevel)
+void UEWUnitAttributeSet::OnRep_UnitLevel(const FGameplayAttributeData& OldUnitLevel)
 {
-	GAMEPLAYATTRIBUTE_REPNOTIFY(UEWUnitAttributeSet, Level, OldLevel);
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UEWUnitAttributeSet, UnitLevel, OldUnitLevel);
 }
 
 void UEWUnitAttributeSet::AdjustAttributeForMaxChange(const FGameplayAttributeData& AffectedAttribute, const FGameplayAttributeData& MaxAttribute, float NewMaxValue, const FGameplayAttribute& AffectedAttributeProperty)

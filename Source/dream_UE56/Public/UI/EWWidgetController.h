@@ -6,6 +6,7 @@
 #include "UObject/NoExportTypes.h"
 #include "GameplayTagContainer.h"
 #include "AbilitySystemInterface.h"
+#include "Engine/DataTable.h"
 #include "EWWidgetController.generated.h"
 
 class UAbilitySystemComponent;
@@ -13,6 +14,7 @@ class UAttributeSet;
 class APlayerController;
 class APawn;
 class APlayerState;
+struct FOnAttributeChangeData;
 
 // Widget Controller 参数结构体
 USTRUCT(BlueprintType)
@@ -188,15 +190,6 @@ public:
 	// 等级相关委托
 	UPROPERTY(BlueprintAssignable, Category = "GAS|Attributes")
 	FOnAttributeChangedSignature OnLevelChanged;
-
-protected:
-	void OnHealthChangedCallback(const FOnAttributeChangeData& Data);
-	void OnMaxHealthChangedCallback(const FOnAttributeChangeData& Data);
-	void OnManaChangedCallback(const FOnAttributeChangeData& Data);
-	void OnMaxManaChangedCallback(const FOnAttributeChangeData& Data);
-	void OnActionPointChangedCallback(const FOnAttributeChangeData& Data);
-	void OnMaxActionPointChangedCallback(const FOnAttributeChangeData& Data);
-	void OnLevelChangedCallback(const FOnAttributeChangeData& Data);
 };
 
 /**
@@ -249,7 +242,7 @@ protected:
 	UPROPERTY()
 	TObjectPtr<class UEWUnitManager> UnitManager;
 
-private:
+	// 回调函数
 	UFUNCTION()
 	void OnUnitSlotChangedCallback(int32 SlotIndex, const struct FUnitSlotData& SlotData);
 

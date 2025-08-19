@@ -32,7 +32,7 @@ public:
 
 	// 获取属性集
 	UFUNCTION(BlueprintCallable, Category = "Ability System")
-	class UEWUnitAttributeSet* GetAttributeSet() const { return AttributeSet; }
+	UEWUnitAttributeSet* GetAttributeSet() const { return AttributeSet; }
 
 	// 生命值相关
 	UFUNCTION(BlueprintCallable, Category = "Health")
@@ -115,7 +115,7 @@ protected:
 
 	// 能力系统组件
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
-	class UAbilitySystemComponent* AbilitySystemComponent;
+	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
 
 	// 属性集
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")

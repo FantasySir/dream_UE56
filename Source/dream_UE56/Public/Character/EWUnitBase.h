@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
 #include "GameplayTagContainer.h"
+#include "Engine/DamageEvents.h"
 #include "EWUnitBase.generated.h"
 
 class UAbilitySystemComponent;
@@ -49,7 +50,8 @@ enum class EUnitClass : uint8
 
 // 单位死亡委托
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitDeath, AEWUnitBase*, DeadUnit);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChanged, AEWUnitBase*, Unit, float, NewHealth);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitHealthChanged, AEWUnitBase*, Unit, float, NewHealth);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnUnitDamaged, AEWUnitBase*, Unit, float, DamageAmount, AEWUnitBase*, DamageSource);
 
 UCLASS()
 class DREAM_UE56_API AEWUnitBase : public ACharacter, public IAbilitySystemInterface
@@ -112,8 +114,8 @@ public:
 	float GetMagicalDefense() const;
 
 	// 等级相关
-	UFUNCTION(BlueprintCallable, Category = "Level")
-	int32 GetLevel() const;
+	UFUNCTION(BlueprintCallable, Category = "UnitLevel")
+	int32 GetUnitLevel() const;
 
 	// 阵营相关
 	UFUNCTION(BlueprintCallable, Category = "Faction")
@@ -157,7 +159,10 @@ public:
 
 	// 战斗相关
 	UFUNCTION(BlueprintCallable, Category = "Combat")
-	void TakeDamage(float DamageAmount, AEWUnitBase* DamageSource);
+	virtual float TakeDamage(float Damage, const struct FDamageEvent& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser) override;
+
+	UFUNCTION(BlueprintCallable, Category = "Combat")
+	void TakeDamageFromUnit(float DamageAmount, AEWUnitBase* DamageSource);
 
 	UFUNCTION(BlueprintCallable, Category = "Combat")
 	void AttackTarget(AEWUnitBase* Target);
@@ -177,7 +182,10 @@ public:
 	FOnUnitDeath OnDeath;
 
 	UPROPERTY(BlueprintAssignable, Category = "Events")
-	FOnHealthChanged OnHealthChanged;
+	FOnUnitHealthChanged OnHealthChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Events")
+	FOnUnitDamaged OnDamaged;
 
 protected:
 	// Called when the game starts or when spawned
@@ -245,7 +253,7 @@ protected:
 	float LastAttackTime = 0.0f;
 
 	// 当单位死亡时调用
-	virtual void OnDeath();
+	virtual void HandleDeath();
 
 	// 处理属性变化
 	UFUNCTION()

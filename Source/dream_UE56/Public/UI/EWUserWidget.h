@@ -4,7 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Player/EWUnitManager.h"
 #include "EWUserWidget.generated.h"
+
 
 class UEWWidgetController;
 
@@ -118,6 +120,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Unit Slot")
 	void SetDraggable(bool bDraggable);
 
+	// 获取单位数据
+	UFUNCTION(BlueprintCallable, Category = "Unit Slot")
+	const FUnitSlotData& GetUnitData() const { return UnitData; }
+
 protected:
 	// 槽位索引
 	UPROPERTY(BlueprintReadOnly, Category = "Unit Slot")
@@ -196,6 +202,10 @@ protected:
 	// 当槽位被清空时调用（蓝图实现）
 	UFUNCTION(BlueprintImplementableEvent, Category = "Battle Slot")
 	void OnSlotCleared();
+
+public:
+	// 重写拖拽放置函数
+	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 };
 
 /**
