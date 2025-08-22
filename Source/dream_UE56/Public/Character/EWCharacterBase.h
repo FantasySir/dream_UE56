@@ -9,7 +9,9 @@
 #include "EWCharacterBase.generated.h"
 
 class UAbilitySystemComponent;
-class UEWUnitAttributeSet;
+class UEWBaseAttributeSet;
+class UEWPlayerAttributeSet;
+class UEWCombatAttributeSet;
 class AEWUnitBase;
 class UGameplayAbility;
 class UGameplayEffect;
@@ -32,7 +34,13 @@ public:
 
 	// 获取属性集
 	UFUNCTION(BlueprintCallable, Category = "Ability System")
-	UEWUnitAttributeSet* GetAttributeSet() const { return AttributeSet; }
+	UEWBaseAttributeSet* GetBaseAttributeSet() const { return BaseAttributeSet; }
+
+	UFUNCTION(BlueprintCallable, Category = "Ability System")
+	UEWPlayerAttributeSet* GetPlayerAttributeSet() const { return PlayerAttributeSet; }
+
+	UFUNCTION(BlueprintCallable, Category = "Ability System")
+	UEWCombatAttributeSet* GetCombatAttributeSet() const { return CombatAttributeSet; }
 
 	// 生命值相关
 	UFUNCTION(BlueprintCallable, Category = "Health")
@@ -72,7 +80,11 @@ public:
 	void ResumeTime();
 
 	UFUNCTION(BlueprintCallable, Category = "Time Control")
-	bool IsTimePaused() const { return bIsTimePaused; }
+	bool IsTimePaused() const;
+
+	// 获取时间管理器
+	UFUNCTION(BlueprintCallable, Category = "Time Control")
+	class UEWTimeManager* GetTimeManager() const;
 
 	// 锁定系统
 	UFUNCTION(BlueprintCallable, Category = "Lock System")
@@ -119,7 +131,13 @@ protected:
 
 	// 属性集
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
-	class UEWUnitAttributeSet* AttributeSet;
+	class UEWBaseAttributeSet* BaseAttributeSet;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
+	class UEWPlayerAttributeSet* PlayerAttributeSet;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
+	class UEWCombatAttributeSet* CombatAttributeSet;
 
 	// 初始化能力系统
 	virtual void InitializeAbilitySystem();
@@ -138,9 +156,6 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Time Control")
 	float PauseTimeCooldown = 5.0f;
-
-	UPROPERTY()
-	bool bIsTimePaused = false;
 
 	UPROPERTY()
 	float LastPauseTime = 0.0f;

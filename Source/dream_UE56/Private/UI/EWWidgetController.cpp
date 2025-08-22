@@ -1,7 +1,9 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "UI/EWWidgetController.h"
-#include "Character/EWUnitAttributeSet.h"
+#include "AbilitySystem/AttributeSets/EWBaseAttributeSet.h"
+#include "AbilitySystem/AttributeSets/EWPlayerAttributeSet.h"
+#include "AbilitySystem/AttributeSets/EWCombatAttributeSet.h"
 #include "Player/EWUnitManager.h"
 #include "AbilitySystemComponent.h"
 #include "GameplayTagContainer.h"
@@ -11,7 +13,9 @@ void UEWWidgetController::SetWidgetControllerParams(const FWidgetControllerParam
 	PlayerController = WCParams.PlayerController;
 	PlayerState = WCParams.PlayerState;
 	AbilitySystemComponent = WCParams.AbilitySystemComponent;
-	AttributeSet = WCParams.AttributeSet;
+	BaseAttributeSet = WCParams.BaseAttributeSet;
+	PlayerAttributeSet = WCParams.PlayerAttributeSet;
+	CombatAttributeSet = WCParams.CombatAttributeSet;
 }
 
 void UEWWidgetController::BroadcastInitialValues()
@@ -35,68 +39,85 @@ void UEWWidgetController::BroadcastMessage(FGameplayTag MessageTag)
 
 void UEWAttributeMenuWidgetController::BroadcastInitialValues()
 {
-	if (!AttributeSet) return;
+	if (BaseAttributeSet)
+	{
+		OnHealthChanged.Broadcast(BaseAttributeSet->GetHealth());
+		OnMaxHealthChanged.Broadcast(BaseAttributeSet->GetMaxHealth());
+		OnManaChanged.Broadcast(BaseAttributeSet->GetMana());
+		OnMaxManaChanged.Broadcast(BaseAttributeSet->GetMaxMana());
+	}
 
-	UEWUnitAttributeSet* EWAttributeSet = CastChecked<UEWUnitAttributeSet>(AttributeSet);
+	if (PlayerAttributeSet)
+	{
+		OnActionPointChanged.Broadcast(PlayerAttributeSet->GetActionPoint());
+		OnMaxActionPointChanged.Broadcast(PlayerAttributeSet->GetMaxActionPoint());
+	}
 
-	OnHealthChanged.Broadcast(EWAttributeSet->GetHealth());
-	OnMaxHealthChanged.Broadcast(EWAttributeSet->GetMaxHealth());
-	OnManaChanged.Broadcast(EWAttributeSet->GetMana());
-	OnMaxManaChanged.Broadcast(EWAttributeSet->GetMaxMana());
-	OnActionPointChanged.Broadcast(EWAttributeSet->GetActionPoint());
-	OnMaxActionPointChanged.Broadcast(EWAttributeSet->GetMaxActionPoint());
-	OnPhysicalAttackChanged.Broadcast(EWAttributeSet->GetPhysicalAttack());
-	OnMagicalAttackChanged.Broadcast(EWAttributeSet->GetMagicalAttack());
-	OnPhysicalDefenseChanged.Broadcast(EWAttributeSet->GetPhysicalDefense());
-	OnMagicalDefenseChanged.Broadcast(EWAttributeSet->GetMagicalDefense());
+	if (CombatAttributeSet)
+	{
+		OnPhysicalAttackChanged.Broadcast(CombatAttributeSet->GetPhysicalAttack());
+		OnMagicalAttackChanged.Broadcast(CombatAttributeSet->GetMagicalAttack());
+		OnPhysicalDefenseChanged.Broadcast(CombatAttributeSet->GetPhysicalDefense());
+		OnMagicalDefenseChanged.Broadcast(CombatAttributeSet->GetMagicalDefense());
+		OnMovementSpeedChanged.Broadcast(CombatAttributeSet->GetMovementSpeed());
+	}
 }
 
 void UEWAttributeMenuWidgetController::BindCallbacksToDependencies()
 {
-	if (!AbilitySystemComponent || !AttributeSet) return;
+	if (!AbilitySystemComponent) return;
 
-	UEWUnitAttributeSet* EWAttributeSet = CastChecked<UEWUnitAttributeSet>(AttributeSet);
+	// 绑定基础属性变化
+	if (BaseAttributeSet)
+	{
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(BaseAttributeSet->GetHealthAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
+			OnHealthChanged.Broadcast(Data.NewValue);
+		});
+		
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(BaseAttributeSet->GetMaxHealthAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
+			OnMaxHealthChanged.Broadcast(Data.NewValue);
+		});
+		
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(BaseAttributeSet->GetManaAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
+			OnManaChanged.Broadcast(Data.NewValue);
+		});
+		
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(BaseAttributeSet->GetMaxManaAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
+			OnMaxManaChanged.Broadcast(Data.NewValue);
+		});
+	}
 
-	// 直接绑定属性变化到委托，简化处理
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(EWAttributeSet->GetHealthAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
-		OnHealthChanged.Broadcast(Data.NewValue);
-	});
-	
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(EWAttributeSet->GetMaxHealthAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
-		OnMaxHealthChanged.Broadcast(Data.NewValue);
-	});
-	
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(EWAttributeSet->GetManaAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
-		OnManaChanged.Broadcast(Data.NewValue);
-	});
-	
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(EWAttributeSet->GetMaxManaAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
-		OnMaxManaChanged.Broadcast(Data.NewValue);
-	});
-	
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(EWAttributeSet->GetActionPointAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
-		OnActionPointChanged.Broadcast(Data.NewValue);
-	});
-	
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(EWAttributeSet->GetMaxActionPointAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
-		OnMaxActionPointChanged.Broadcast(Data.NewValue);
-	});
-	
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(EWAttributeSet->GetPhysicalAttackAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
-		OnPhysicalAttackChanged.Broadcast(Data.NewValue);
-	});
-	
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(EWAttributeSet->GetMagicalAttackAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
-		OnMagicalAttackChanged.Broadcast(Data.NewValue);
-	});
-	
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(EWAttributeSet->GetPhysicalDefenseAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
-		OnPhysicalDefenseChanged.Broadcast(Data.NewValue);
-	});
-	
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(EWAttributeSet->GetMagicalDefenseAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
-		OnMagicalDefenseChanged.Broadcast(Data.NewValue);
-	});
+	// 绑定玩家属性变化
+	if (PlayerAttributeSet)
+	{
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(PlayerAttributeSet->GetActionPointAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
+			OnActionPointChanged.Broadcast(Data.NewValue);
+		});
+		
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(PlayerAttributeSet->GetMaxActionPointAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
+			OnMaxActionPointChanged.Broadcast(Data.NewValue);
+		});
+	}
+
+	// 绑定战斗属性变化
+	if (CombatAttributeSet)
+	{
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(CombatAttributeSet->GetPhysicalAttackAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
+			OnPhysicalAttackChanged.Broadcast(Data.NewValue);
+		});
+		
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(CombatAttributeSet->GetMagicalAttackAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
+			OnMagicalAttackChanged.Broadcast(Data.NewValue);
+		});
+		
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(CombatAttributeSet->GetPhysicalDefenseAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
+			OnPhysicalDefenseChanged.Broadcast(Data.NewValue);
+		});
+		
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(CombatAttributeSet->GetMagicalDefenseAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
+			OnMagicalDefenseChanged.Broadcast(Data.NewValue);
+		});
+	}
 }
 
 void UEWAttributeMenuWidgetController::UpgradeAttribute(const FGameplayTag& AttributeTag)
@@ -111,53 +132,61 @@ void UEWAttributeMenuWidgetController::UpgradeAttribute(const FGameplayTag& Attr
 
 void UEWOverlayWidgetController::BroadcastInitialValues()
 {
-	if (!AttributeSet) return;
+	if (BaseAttributeSet)
+	{
+		OnHealthChanged.Broadcast(BaseAttributeSet->GetHealth());
+		OnMaxHealthChanged.Broadcast(BaseAttributeSet->GetMaxHealth());
+		OnManaChanged.Broadcast(BaseAttributeSet->GetMana());
+		OnMaxManaChanged.Broadcast(BaseAttributeSet->GetMaxMana());
+		OnLevelChanged.Broadcast(BaseAttributeSet->GetUnitLevel());
+	}
 
-	UEWUnitAttributeSet* EWAttributeSet = CastChecked<UEWUnitAttributeSet>(AttributeSet);
-
-	OnHealthChanged.Broadcast(EWAttributeSet->GetHealth());
-	OnMaxHealthChanged.Broadcast(EWAttributeSet->GetMaxHealth());
-	OnManaChanged.Broadcast(EWAttributeSet->GetMana());
-	OnMaxManaChanged.Broadcast(EWAttributeSet->GetMaxMana());
-	OnActionPointChanged.Broadcast(EWAttributeSet->GetActionPoint());
-	OnMaxActionPointChanged.Broadcast(EWAttributeSet->GetMaxActionPoint());
-	OnLevelChanged.Broadcast(EWAttributeSet->GetUnitLevel());
+	if (PlayerAttributeSet)
+	{
+		OnActionPointChanged.Broadcast(PlayerAttributeSet->GetActionPoint());
+		OnMaxActionPointChanged.Broadcast(PlayerAttributeSet->GetMaxActionPoint());
+	}
 }
 
 void UEWOverlayWidgetController::BindCallbacksToDependencies()
 {
-	if (!AbilitySystemComponent || !AttributeSet) return;
+	if (!AbilitySystemComponent) return;
 
-	UEWUnitAttributeSet* EWAttributeSet = CastChecked<UEWUnitAttributeSet>(AttributeSet);
+	// 绑定基础属性变化
+	if (BaseAttributeSet)
+	{
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(BaseAttributeSet->GetHealthAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
+			OnHealthChanged.Broadcast(Data.NewValue);
+		});
+		
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(BaseAttributeSet->GetMaxHealthAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
+			OnMaxHealthChanged.Broadcast(Data.NewValue);
+		});
+		
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(BaseAttributeSet->GetManaAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
+			OnManaChanged.Broadcast(Data.NewValue);
+		});
+		
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(BaseAttributeSet->GetMaxManaAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
+			OnMaxManaChanged.Broadcast(Data.NewValue);
+		});
+		
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(BaseAttributeSet->GetUnitLevelAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
+			OnLevelChanged.Broadcast(Data.NewValue);
+		});
+	}
 
-	// 使用lambda简化绑定
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(EWAttributeSet->GetHealthAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
-		OnHealthChanged.Broadcast(Data.NewValue);
-	});
-	
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(EWAttributeSet->GetMaxHealthAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
-		OnMaxHealthChanged.Broadcast(Data.NewValue);
-	});
-	
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(EWAttributeSet->GetManaAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
-		OnManaChanged.Broadcast(Data.NewValue);
-	});
-	
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(EWAttributeSet->GetMaxManaAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
-		OnMaxManaChanged.Broadcast(Data.NewValue);
-	});
-	
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(EWAttributeSet->GetActionPointAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
-		OnActionPointChanged.Broadcast(Data.NewValue);
-	});
-	
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(EWAttributeSet->GetMaxActionPointAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
-		OnMaxActionPointChanged.Broadcast(Data.NewValue);
-	});
-	
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(EWAttributeSet->GetUnitLevelAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
-		OnLevelChanged.Broadcast(Data.NewValue);
-	});
+	// 绑定玩家属性变化
+	if (PlayerAttributeSet)
+	{
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(PlayerAttributeSet->GetActionPointAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
+			OnActionPointChanged.Broadcast(Data.NewValue);
+		});
+		
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(PlayerAttributeSet->GetMaxActionPointAttribute()).AddLambda([this](const FOnAttributeChangeData& Data) {
+			OnMaxActionPointChanged.Broadcast(Data.NewValue);
+		});
+	}
 }
 
 //========================================
@@ -234,12 +263,9 @@ float UEWUnitManagementWidgetController::GetSummonCost() const
 
 bool UEWUnitManagementWidgetController::CanSummonAll() const
 {
-	if (!UnitManager || !AttributeSet) return false;
-	
-	UEWUnitAttributeSet* EWAttributeSet = Cast<UEWUnitAttributeSet>(AttributeSet);
-	if (!EWAttributeSet) return false;
+	if (!UnitManager || !PlayerAttributeSet) return false;
 
-	float AvailableActionPoint = EWAttributeSet->GetActionPoint();
+	float AvailableActionPoint = PlayerAttributeSet->GetActionPoint();
 	return UnitManager->CanSummonAll(AvailableActionPoint);
 }
 

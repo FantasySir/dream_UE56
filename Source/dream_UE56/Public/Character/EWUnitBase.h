@@ -10,7 +10,8 @@
 #include "EWUnitBase.generated.h"
 
 class UAbilitySystemComponent;
-class UEWUnitAttributeSet;
+class UEWBaseAttributeSet;
+class UEWCombatAttributeSet;
 class UEWUnitData;
 class UBehaviorTreeComponent;
 class UBlackboardComponent;
@@ -66,8 +67,12 @@ public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
 	// 获取属性集
+	// 获取属性集
 	UFUNCTION(BlueprintCallable, Category = "Ability System")
-	class UEWUnitAttributeSet* GetAttributeSet() const { return AttributeSet; }
+	class UEWBaseAttributeSet* GetBaseAttributeSet() const { return BaseAttributeSet; }
+
+	UFUNCTION(BlueprintCallable, Category = "Ability System")
+	class UEWCombatAttributeSet* GetCombatAttributeSet() const { return CombatAttributeSet; }
 
 	// 血量相关的蓝图可调用函数
 	UFUNCTION(BlueprintCallable, Category = "Health")
@@ -191,13 +196,19 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	// Called when the game ends or when destroyed
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 	// 能力系统组件
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
 	class UAbilitySystemComponent* AbilitySystemComponent;
 
 	// 属性集
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
-	class UEWUnitAttributeSet* AttributeSet;
+	class UEWBaseAttributeSet* BaseAttributeSet;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
+	class UEWCombatAttributeSet* CombatAttributeSet;
 
 	// AI组件
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")

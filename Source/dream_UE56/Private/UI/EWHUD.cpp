@@ -4,7 +4,9 @@
 #include "UI/EWUserWidget.h"
 #include "UI/EWWidgetController.h"
 #include "Character/EWCharacterBase.h"
-#include "Character/EWUnitAttributeSet.h"
+#include "AbilitySystem/AttributeSets/EWBaseAttributeSet.h"
+#include "AbilitySystem/AttributeSets/EWPlayerAttributeSet.h"
+#include "AbilitySystem/AttributeSets/EWCombatAttributeSet.h"
 #include "Player/EWUnitManager.h"
 #include "AttributeSet.h"
 #include "GameFramework/PlayerState.h"
@@ -14,7 +16,8 @@ void AEWHUD::BeginPlay()
 	Super::BeginPlay();
 }
 
-void AEWHUD::InitOverlay(APlayerController* PC, APlayerState* PS, UAbilitySystemComponent* ASC, UAttributeSet* AS)
+void AEWHUD::InitOverlay(APlayerController* PC, APlayerState* PS, UAbilitySystemComponent* ASC, 
+	UEWBaseAttributeSet* BaseAS, UEWPlayerAttributeSet* PlayerAS, UEWCombatAttributeSet* CombatAS)
 {
 	checkf(OverlayWidgetClass, TEXT("Overlay Widget Class uninitialized, please fill out BP_HUD"));
 	checkf(OverlayWidgetControllerClass, TEXT("Overlay Widget Controller Class uninitialized, please fill out BP_HUD"));
@@ -22,7 +25,7 @@ void AEWHUD::InitOverlay(APlayerController* PC, APlayerState* PS, UAbilitySystem
 	UUserWidget* Widget = CreateWidget<UUserWidget>(GetWorld(), OverlayWidgetClass);
 	OverlayWidget = Cast<UEWUserWidget>(Widget);
 
-	const FWidgetControllerParams WidgetControllerParams(PC, PS, ASC, AS);
+	const FWidgetControllerParams WidgetControllerParams(PC, PS, ASC, BaseAS, PlayerAS, CombatAS);
 	UEWOverlayWidgetController* WidgetController = GetOverlayWidgetController(WidgetControllerParams);
 
 	OverlayWidget->SetWidgetController(WidgetController);
@@ -86,9 +89,11 @@ void AEWHUD::ShowAttributeMenu()
 			if (AEWCharacterBase* Character = Cast<AEWCharacterBase>(PC->GetPawn()))
 			{
 				UAbilitySystemComponent* ASC = Character->GetAbilitySystemComponent();
-				UAttributeSet* AS = Cast<UAttributeSet>(Character->GetAttributeSet());
+				UEWBaseAttributeSet* BaseAS = Character->GetBaseAttributeSet();
+				UEWPlayerAttributeSet* PlayerAS = Character->GetPlayerAttributeSet();
+				UEWCombatAttributeSet* CombatAS = Character->GetCombatAttributeSet();
 				
-				const FWidgetControllerParams WCParams(PC, PS, ASC, AS);
+				const FWidgetControllerParams WCParams(PC, PS, ASC, BaseAS, PlayerAS, CombatAS);
 				UEWAttributeMenuWidgetController* WidgetController = GetAttributeMenuWidgetController(WCParams);
 				
 				AttributeMenuWidget->SetWidgetController(WidgetController);
@@ -139,9 +144,11 @@ void AEWHUD::ShowUnitManagement()
 			if (AEWCharacterBase* Character = Cast<AEWCharacterBase>(PC->GetPawn()))
 			{
 				UAbilitySystemComponent* ASC = Character->GetAbilitySystemComponent();
-				UAttributeSet* AS = Cast<UAttributeSet>(Character->GetAttributeSet());
+				UEWBaseAttributeSet* BaseAS = Character->GetBaseAttributeSet();
+				UEWPlayerAttributeSet* PlayerAS = Character->GetPlayerAttributeSet();
+				UEWCombatAttributeSet* CombatAS = Character->GetCombatAttributeSet();
 				
-				const FWidgetControllerParams WCParams(PC, PS, ASC, AS);
+				const FWidgetControllerParams WCParams(PC, PS, ASC, BaseAS, PlayerAS, CombatAS);
 				UEWUnitManagementWidgetController* WidgetController = GetUnitManagementWidgetController(WCParams);
 				
 				UnitManagementWidget->SetWidgetController(WidgetController);

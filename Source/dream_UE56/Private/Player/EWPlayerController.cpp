@@ -46,13 +46,9 @@ void AEWPlayerController::SetupInputComponent()
 	}
 	
 	// 战斗相关
-	if (LockTargetAction)
+	if (ToggleLockAction)
 	{
-		EnhancedInputComponent->BindAction(LockTargetAction, ETriggerEvent::Triggered, this, &AEWPlayerController::LockTarget);
-	}
-	if (UnlockTargetAction)
-	{
-		EnhancedInputComponent->BindAction(UnlockTargetAction, ETriggerEvent::Triggered, this, &AEWPlayerController::UnlockTarget);
+		EnhancedInputComponent->BindAction(ToggleLockAction, ETriggerEvent::Triggered, this, &AEWPlayerController::ToggleLock);
 	}
 	
 	// 时间控制
@@ -136,7 +132,7 @@ void AEWPlayerController::Look(const FInputActionValue& Value)
 	}
 }
 
-void AEWPlayerController::LockTarget(const FInputActionValue& Value)
+void AEWPlayerController::ToggleLock(const FInputActionValue& Value)
 {
 	AEWCharacterBase* EWCharacter = GetControlledCharacter();
 	if (!EWCharacter)
@@ -159,20 +155,12 @@ void AEWPlayerController::LockTarget(const FInputActionValue& Value)
 	}
 }
 
-void AEWPlayerController::UnlockTarget(const FInputActionValue& Value)
-{
-	AEWCharacterBase* EWCharacter = GetControlledCharacter();
-	if (EWCharacter)
-	{
-		EWCharacter->UnlockTarget();
-	}
-}
-
 void AEWPlayerController::PauseTime(const FInputActionValue& Value)
 {
 	AEWCharacterBase* EWCharacter = GetControlledCharacter();
 	if (EWCharacter && EWCharacter->CanPauseTime())
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Pausing time for character: %s"), *EWCharacter->GetName());
 		EWCharacter->PauseTime();
 	}
 }
@@ -182,6 +170,7 @@ void AEWPlayerController::ResumeTime(const FInputActionValue& Value)
 	AEWCharacterBase* EWCharacter = GetControlledCharacter();
 	if (EWCharacter)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Resuming time for character: %s"), *EWCharacter->GetName());
 		EWCharacter->ResumeTime();
 	}
 }

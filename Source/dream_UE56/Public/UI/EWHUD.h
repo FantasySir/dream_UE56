@@ -12,7 +12,9 @@ class UEWOverlayWidgetController;
 class UEWAttributeMenuWidgetController;
 class UEWUnitManagementWidgetController;
 class UAbilitySystemComponent;
-class UAttributeSet;
+class UEWBaseAttributeSet;
+class UEWPlayerAttributeSet;
+class UEWCombatAttributeSet;
 
 /**
  * EW HUD类 - 管理所有UI元素
@@ -24,7 +26,8 @@ class DREAM_UE56_API AEWHUD : public AHUD
 
 public:
 	// 初始化Overlay
-	void InitOverlay(APlayerController* PC, APlayerState* PS, UAbilitySystemComponent* ASC, UAttributeSet* AS);
+	void InitOverlay(APlayerController* PC, APlayerState* PS, UAbilitySystemComponent* ASC, 
+		UEWBaseAttributeSet* BaseAS, UEWPlayerAttributeSet* PlayerAS, UEWCombatAttributeSet* CombatAS);
 
 	// 获取Overlay Widget Controller
 	UEWOverlayWidgetController* GetOverlayWidgetController(const FWidgetControllerParams& WCParams);

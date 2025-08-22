@@ -1,9 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Character/EWCharacterBase.h"
-#include "Character/EWUnitAttributeSet.h"
+#include "AbilitySystem/AttributeSets/EWBaseAttributeSet.h"
+#include "AbilitySystem/AttributeSets/EWPlayerAttributeSet.h"
+#include "AbilitySystem/AttributeSets/EWCombatAttributeSet.h"
 #include "Character/EWUnitBase.h"
 #include "Player/EWUnitManager.h"
+#include "Gameplay/EWTimeManager.h"
 #include "AbilitySystemComponent.h"
 #include "GameplayEffect.h"
 #include "Engine/World.h"
@@ -21,7 +24,9 @@ AEWCharacterBase::AEWCharacterBase()
 	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 
 	// 创建属性集
-	AttributeSet = CreateDefaultSubobject<UEWUnitAttributeSet>(TEXT("AttributeSet"));
+	BaseAttributeSet = CreateDefaultSubobject<UEWBaseAttributeSet>(TEXT("BaseAttributeSet"));
+	PlayerAttributeSet = CreateDefaultSubobject<UEWPlayerAttributeSet>(TEXT("PlayerAttributeSet"));
+	CombatAttributeSet = CreateDefaultSubobject<UEWCombatAttributeSet>(TEXT("CombatAttributeSet"));
 
 	// 创建单位管理器
 	UnitManager = CreateDefaultSubobject<UEWUnitManager>(TEXT("UnitManager"));
@@ -48,7 +53,7 @@ void AEWCharacterBase::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	// 行动值自动回复
-	if (AbilitySystemComponent && AttributeSet)
+	if (AbilitySystemComponent && PlayerAttributeSet)
 	{
 		float CurrentActionPoint = GetActionPoint();
 		float MaxActionPoint = GetMaxActionPoint();
@@ -101,18 +106,18 @@ void AEWCharacterBase::InitializeAbilitySystem()
 
 float AEWCharacterBase::GetHealth() const
 {
-	if (AttributeSet)
+	if (BaseAttributeSet)
 	{
-		return AttributeSet->GetHealth();
+		return BaseAttributeSet->GetHealth();
 	}
 	return 0.0f;
 }
 
 float AEWCharacterBase::GetMaxHealth() const
 {
-	if (AttributeSet)
+	if (BaseAttributeSet)
 	{
-		return AttributeSet->GetMaxHealth();
+		return BaseAttributeSet->GetMaxHealth();
 	}
 	return 0.0f;
 }
@@ -134,36 +139,36 @@ bool AEWCharacterBase::IsAlive() const
 
 float AEWCharacterBase::GetMana() const
 {
-	if (AttributeSet)
+	if (BaseAttributeSet)
 	{
-		return AttributeSet->GetMana();
+		return BaseAttributeSet->GetMana();
 	}
 	return 0.0f;
 }
 
 float AEWCharacterBase::GetMaxMana() const
 {
-	if (AttributeSet)
+	if (BaseAttributeSet)
 	{
-		return AttributeSet->GetMaxMana();
+		return BaseAttributeSet->GetMaxMana();
 	}
 	return 0.0f;
 }
 
 float AEWCharacterBase::GetActionPoint() const
 {
-	if (AttributeSet)
+	if (PlayerAttributeSet)
 	{
-		return AttributeSet->GetActionPoint();
+		return PlayerAttributeSet->GetActionPoint();
 	}
 	return 0.0f;
 }
 
 float AEWCharacterBase::GetMaxActionPoint() const
 {
-	if (AttributeSet)
+	if (PlayerAttributeSet)
 	{
-		return AttributeSet->GetMaxActionPoint();
+		return PlayerAttributeSet->GetMaxActionPoint();
 	}
 	return 0.0f;
 }
@@ -188,18 +193,17 @@ bool AEWCharacterBase::CanPauseTime() const
 
 void AEWCharacterBase::PauseTime()
 {
-	if (!CanPauseTime() || bIsTimePaused)
+	if (!CanPauseTime())
 	{
 		return;
 	}
 
-	bIsTimePaused = true;
 	LastPauseTime = GetWorld()->GetTimeSeconds();
 
-	// 暂停世界时间
-	if (UWorld* World = GetWorld())
+	// 使用时间管理器暂停时间
+	if (UEWTimeManager* TimeManager = GetTimeManager())
 	{
-		World->GetWorldSettings()->SetTimeDilation(0.0f);
+		TimeManager->PauseTime(this);
 	}
 
 	// 这里需要消耗行动值，通过GE实现
@@ -208,18 +212,29 @@ void AEWCharacterBase::PauseTime()
 
 void AEWCharacterBase::ResumeTime()
 {
-	if (!bIsTimePaused)
+	// 使用时间管理器恢复时间
+	if (UEWTimeManager* TimeManager = GetTimeManager())
 	{
-		return;
+		TimeManager->ResumeTime();
 	}
+}
 
-	bIsTimePaused = false;
+bool AEWCharacterBase::IsTimePaused() const
+{
+	if (UEWTimeManager* TimeManager = GetTimeManager())
+	{
+		return TimeManager->IsTimePaused();
+	}
+	return false;
+}
 
-	// 恢复世界时间
+UEWTimeManager* AEWCharacterBase::GetTimeManager() const
+{
 	if (UWorld* World = GetWorld())
 	{
-		World->GetWorldSettings()->SetTimeDilation(1.0f);
+		return World->GetSubsystem<UEWTimeManager>();
 	}
+	return nullptr;
 }
 
 void AEWCharacterBase::LockTarget(AEWUnitBase* Target)

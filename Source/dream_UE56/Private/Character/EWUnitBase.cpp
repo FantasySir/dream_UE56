@@ -1,8 +1,10 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Character/EWUnitBase.h"
-#include "Character/EWUnitAttributeSet.h"
+#include "AbilitySystem/AttributeSets/EWBaseAttributeSet.h"
+#include "AbilitySystem/AttributeSets/EWCombatAttributeSet.h"
 #include "Data/EWUnitData.h"
+#include "Gameplay/EWTimeManager.h"
 #include "AbilitySystemComponent.h"
 #include "Abilities/GameplayAbility.h"
 #include "GameplayEffect.h"
@@ -12,6 +14,7 @@
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/BlackboardData.h"
 #include "BrainComponent.h"
+#include "Engine/World.h"
 
 // Sets default values
 AEWUnitBase::AEWUnitBase()
@@ -27,7 +30,8 @@ AEWUnitBase::AEWUnitBase()
 	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 
 	// 创建属性集
-	AttributeSet = CreateDefaultSubobject<UEWUnitAttributeSet>(TEXT("AttributeSet"));
+	BaseAttributeSet = CreateDefaultSubobject<UEWBaseAttributeSet>(TEXT("BaseAttributeSet"));
+	CombatAttributeSet = CreateDefaultSubobject<UEWCombatAttributeSet>(TEXT("CombatAttributeSet"));
 }
 
 // Called when the game starts or when spawned
@@ -40,6 +44,30 @@ void AEWUnitBase::BeginPlay()
 	{
 		InitializeAbilitySystem();
 	}
+
+	// 注册到时间管理系统
+	if (UWorld* World = GetWorld())
+	{
+		if (UEWTimeManager* TimeManager = World->GetSubsystem<UEWTimeManager>())
+		{
+			TimeManager->RegisterTimeSensitiveActor(this);
+		}
+	}
+}
+
+// Called when the game ends or when destroyed
+void AEWUnitBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	// 从时间管理系统注销
+	if (UWorld* World = GetWorld())
+	{
+		if (UEWTimeManager* TimeManager = World->GetSubsystem<UEWTimeManager>())
+		{
+			TimeManager->UnregisterTimeSensitiveActor(this);
+		}
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 // Called every frame
@@ -116,18 +144,18 @@ void AEWUnitBase::InitializeAbilitySystem()
 
 float AEWUnitBase::GetHealth() const
 {
-	if (AttributeSet)
+	if (BaseAttributeSet)
 	{
-		return AttributeSet->GetHealth();
+		return BaseAttributeSet->GetHealth();
 	}
 	return 0.0f;
 }
 
 float AEWUnitBase::GetMaxHealth() const
 {
-	if (AttributeSet)
+	if (BaseAttributeSet)
 	{
-		return AttributeSet->GetMaxHealth();
+		return BaseAttributeSet->GetMaxHealth();
 	}
 	return 0.0f;
 }
@@ -150,18 +178,18 @@ bool AEWUnitBase::IsAlive() const
 
 float AEWUnitBase::GetMana() const
 {
-	if (AttributeSet)
+	if (BaseAttributeSet)
 	{
-		return AttributeSet->GetMana();
+		return BaseAttributeSet->GetMana();
 	}
 	return 0.0f;
 }
 
 float AEWUnitBase::GetMaxMana() const
 {
-	if (AttributeSet)
+	if (BaseAttributeSet)
 	{
-		return AttributeSet->GetMaxMana();
+		return BaseAttributeSet->GetMaxMana();
 	}
 	return 0.0f;
 }
@@ -178,63 +206,63 @@ float AEWUnitBase::GetManaPercentage() const
 
 float AEWUnitBase::GetStamina() const
 {
-	if (AttributeSet)
+	if (BaseAttributeSet)
 	{
-		return AttributeSet->GetStamina();
+		return BaseAttributeSet->GetStamina();
 	}
 	return 0.0f;
 }
 
 float AEWUnitBase::GetMaxStamina() const
 {
-	if (AttributeSet)
+	if (BaseAttributeSet)
 	{
-		return AttributeSet->GetMaxStamina();
+		return BaseAttributeSet->GetMaxStamina();
 	}
 	return 0.0f;
 }
 
 float AEWUnitBase::GetPhysicalAttack() const
 {
-	if (AttributeSet)
+	if (CombatAttributeSet)
 	{
-		return AttributeSet->GetPhysicalAttack();
+		return CombatAttributeSet->GetPhysicalAttack();
 	}
 	return 0.0f;
 }
 
 float AEWUnitBase::GetMagicalAttack() const
 {
-	if (AttributeSet)
+	if (CombatAttributeSet)
 	{
-		return AttributeSet->GetMagicalAttack();
+		return CombatAttributeSet->GetMagicalAttack();
 	}
 	return 0.0f;
 }
 
 float AEWUnitBase::GetPhysicalDefense() const
 {
-	if (AttributeSet)
+	if (CombatAttributeSet)
 	{
-		return AttributeSet->GetPhysicalDefense();
+		return CombatAttributeSet->GetPhysicalDefense();
 	}
 	return 0.0f;
 }
 
 float AEWUnitBase::GetMagicalDefense() const
 {
-	if (AttributeSet)
+	if (CombatAttributeSet)
 	{
-		return AttributeSet->GetMagicalDefense();
+		return CombatAttributeSet->GetMagicalDefense();
 	}
 	return 0.0f;
 }
 
 int32 AEWUnitBase::GetUnitLevel() const
 {
-	if (AttributeSet)
+	if (BaseAttributeSet)
 	{
-		return FMath::RoundToInt(AttributeSet->GetUnitLevel());
+		return FMath::RoundToInt(BaseAttributeSet->GetUnitLevel());
 	}
 	return 1;
 }
@@ -311,13 +339,13 @@ void AEWUnitBase::AttackTarget(AEWUnitBase* Target)
 	LastAttackTime = GetWorld()->GetTimeSeconds();
 	float DamageAmount = GetPhysicalAttack();
 	Target->TakeDamageFromUnit(DamageAmount, this);
-	if (AttributeSet)
+	if (BaseAttributeSet)
 	{
 		float CurrentMana = GetMana();
 		float MaxMana = GetMaxMana();
 		float ManaGain = 10.0f;
 		float NewMana = FMath::Min(CurrentMana + ManaGain, MaxMana);
-		const_cast<UEWUnitAttributeSet*>(AttributeSet)->SetMana(NewMana);
+		const_cast<UEWBaseAttributeSet*>(BaseAttributeSet)->SetMana(NewMana);
 	}
 }
 
@@ -353,9 +381,9 @@ void AEWUnitBase::CastRandomSkill()
 		if (AbilitySpec)
 		{
 			AbilitySystemComponent->TryActivateAbility(AbilitySpec->Handle);
-			if (AttributeSet)
+			if (BaseAttributeSet)
 			{
-				const_cast<UEWUnitAttributeSet*>(AttributeSet)->SetMana(0.0f);
+				const_cast<UEWBaseAttributeSet*>(BaseAttributeSet)->SetMana(0.0f);
 			}
 		}
 	}
@@ -394,7 +422,7 @@ void AEWUnitBase::TakeDamageFromUnit(float DamageAmount, AEWUnitBase* DamageSour
 	if (!IsAlive() || DamageAmount <= 0.0f) return;
 
 	// 通过GAS应用伤害
-	if (AbilitySystemComponent && AttributeSet)
+	if (AbilitySystemComponent && BaseAttributeSet)
 	{
 		// 这里可以创建一个伤害GameplayEffect来应用伤害
 		// 暂时直接修改属性

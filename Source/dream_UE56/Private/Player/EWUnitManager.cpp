@@ -2,7 +2,9 @@
 
 #include "Player/EWUnitManager.h"
 #include "Character/EWUnitBase.h"
-#include "Character/EWUnitAttributeSet.h"
+#include "AbilitySystem/AttributeSets/EWBaseAttributeSet.h"
+#include "AbilitySystem/AttributeSets/EWPlayerAttributeSet.h"
+#include "AbilitySystem/AttributeSets/EWCombatAttributeSet.h"
 #include "Engine/World.h"
 
 UEWUnitManager::UEWUnitManager()
@@ -147,8 +149,8 @@ TArray<AEWUnitBase*> UEWUnitManager::SummonBattleUnits(UWorld* World, const TArr
 				// 设置血量和魔法值
 				float MaxHealth = Unit->GetMaxHealth();
 				float MaxMana = Unit->GetMaxMana();
-				Unit->GetAttributeSet()->SetHealth(MaxHealth * Slot.HealthPercentage);
-				Unit->GetAttributeSet()->SetMana(MaxMana * Slot.ManaPercentage);
+				Unit->GetBaseAttributeSet()->SetHealth(MaxHealth * Slot.HealthPercentage);
+				Unit->GetBaseAttributeSet()->SetMana(MaxMana * Slot.ManaPercentage);
 				Result.Add(Unit);
 				SummonedUnits.Add(Unit);
 			}

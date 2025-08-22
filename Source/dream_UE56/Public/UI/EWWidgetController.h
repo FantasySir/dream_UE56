@@ -10,7 +10,9 @@
 #include "EWWidgetController.generated.h"
 
 class UAbilitySystemComponent;
-class UAttributeSet;
+class UEWBaseAttributeSet;
+class UEWPlayerAttributeSet;
+class UEWCombatAttributeSet;
 class APlayerController;
 class APawn;
 class APlayerState;
@@ -23,8 +25,10 @@ struct DREAM_UE56_API FWidgetControllerParams
 	GENERATED_BODY()
 
 	FWidgetControllerParams() {}
-	FWidgetControllerParams(APlayerController* PC, APlayerState* PS, UAbilitySystemComponent* ASC, UAttributeSet* AS)
-		: PlayerController(PC), PlayerState(PS), AbilitySystemComponent(ASC), AttributeSet(AS) {}
+	FWidgetControllerParams(APlayerController* PC, APlayerState* PS, UAbilitySystemComponent* ASC, 
+		UEWBaseAttributeSet* BaseAS, UEWPlayerAttributeSet* PlayerAS, UEWCombatAttributeSet* CombatAS)
+		: PlayerController(PC), PlayerState(PS), AbilitySystemComponent(ASC), 
+		  BaseAttributeSet(BaseAS), PlayerAttributeSet(PlayerAS), CombatAttributeSet(CombatAS) {}
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<APlayerController> PlayerController = nullptr;
@@ -36,7 +40,13 @@ struct DREAM_UE56_API FWidgetControllerParams
 	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<UAttributeSet> AttributeSet = nullptr;
+	TObjectPtr<UEWBaseAttributeSet> BaseAttributeSet = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UEWPlayerAttributeSet> PlayerAttributeSet = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UEWCombatAttributeSet> CombatAttributeSet = nullptr;
 };
 
 // 属性值改变委托
@@ -82,7 +92,13 @@ protected:
 	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Widget Controller")
-	TObjectPtr<UAttributeSet> AttributeSet;
+	TObjectPtr<UEWBaseAttributeSet> BaseAttributeSet;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Widget Controller")
+	TObjectPtr<UEWPlayerAttributeSet> PlayerAttributeSet;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Widget Controller")
+	TObjectPtr<UEWCombatAttributeSet> CombatAttributeSet;
 
 public:
 	// 通用属性变化委托
@@ -140,6 +156,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Attributes")
 	FOnAttributeChangedSignature OnMagicalDefenseChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Attributes")
+	FOnAttributeChangedSignature OnMovementSpeedChanged;
 
 private:
 	void OnHealthChangedCallback(const FOnAttributeChangeData& Data);

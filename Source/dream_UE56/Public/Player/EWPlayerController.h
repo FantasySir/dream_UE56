@@ -40,10 +40,7 @@ protected:
 
 	// 战斗相关输入动作
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Combat")
-	TObjectPtr<UInputAction> LockTargetAction;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Combat")
-	TObjectPtr<UInputAction> UnlockTargetAction;
+	TObjectPtr<UInputAction> ToggleLockAction;
 
 	// 时间控制输入动作
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input|Time")
@@ -80,8 +77,7 @@ protected:
 	void Look(const FInputActionValue& Value);
 	
 	// 战斗相关输入处理
-	void LockTarget(const FInputActionValue& Value);
-	void UnlockTarget(const FInputActionValue& Value);
+	void ToggleLock(const FInputActionValue& Value);
 	
 	// 时间控制输入处理
 	void PauseTime(const FInputActionValue& Value);
