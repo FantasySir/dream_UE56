@@ -12,10 +12,11 @@
 class UAbilitySystemComponent;
 class UEWBaseAttributeSet;
 class UEWCombatAttributeSet;
-class UEWUnitData;
+class UEWUnitAttributeSet;
 class UBehaviorTreeComponent;
 class UBlackboardComponent;
 class UBehaviorTree;
+class AEWUnitState;
 
 // 单位阵营枚举
 UENUM(BlueprintType)
@@ -74,53 +75,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Ability System")
 	class UEWCombatAttributeSet* GetCombatAttributeSet() const { return CombatAttributeSet; }
 
-	// 血量相关的蓝图可调用函数
-	UFUNCTION(BlueprintCallable, Category = "Health")
-	float GetHealth() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Health")
-	float GetMaxHealth() const;
-
+	//百分比获取
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	float GetHealthPercentage() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Mana")
+	float GetManaPercentage() const;
 
 	// 是否已死亡
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	bool IsAlive() const;
 
-	// 魔法值相关
-	UFUNCTION(BlueprintCallable, Category = "Mana")
-	float GetMana() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Mana")
-	float GetMaxMana() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Mana")
-	float GetManaPercentage() const;
-
-	// 体力值相关
-	UFUNCTION(BlueprintCallable, Category = "Stamina")
-	float GetStamina() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Stamina")
-	float GetMaxStamina() const;
-
-	// 战斗属性
-	UFUNCTION(BlueprintCallable, Category = "Combat")
-	float GetPhysicalAttack() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Combat")
-	float GetMagicalAttack() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Combat")
-	float GetPhysicalDefense() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Combat")
-	float GetMagicalDefense() const;
-
-	// 等级相关
-	UFUNCTION(BlueprintCallable, Category = "UnitLevel")
-	int32 GetUnitLevel() const;
 
 	// 阵营相关
 	UFUNCTION(BlueprintCallable, Category = "Faction")
@@ -196,6 +161,9 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	// APawn interface - 当被Controller占有时调用
+	virtual void PossessedBy(AController* NewController) override;
+
 	// Called when the game ends or when destroyed
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
@@ -210,6 +178,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
 	class UEWCombatAttributeSet* CombatAttributeSet;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
+	class UEWUnitAttributeSet* UnitAttributeSet;
+
 	// AI组件
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	class UBehaviorTreeComponent* BehaviorTreeComponent;
@@ -217,16 +188,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	class UBlackboardComponent* BlackboardComponent;
 
-	// 初始化能力系统
-	virtual void InitializeAbilitySystem();
+	// 初始化能力系统Actor信息
+	virtual void InitAbilityActorInfo();
 
-	// 单位数据资产
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Unit Data")
-	class UEWUnitData* UnitData;
-
-	// 默认属性效果（用于设置初始属性值）
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Ability System")
-	TSubclassOf<class UGameplayEffect> DefaultAttributeEffect;
+	// 单位状态管理器 (数据层)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Unit State")
+	class AEWUnitState* UnitState;
 
 	// 起始能力
 	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Ability System")

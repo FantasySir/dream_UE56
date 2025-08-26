@@ -3,176 +3,178 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameState/EWBaseState.h"
+#include "AbilitySystemInterface.h"
+#include "GameFramework/PlayerState.h"
+#include "Interfaces/LevelExperienceInterface.h"
 #include "Character/EWUnitBase.h"
+#include "Net/UnrealNetwork.h"
 #include "EWUnitState.generated.h"
 
+class UAbilitySystemComponent;
 class UEWUnitAttributeSet;
-class UEWUnitData;
+class UEWBaseAttributeSet;
 
 /**
  * 单位状态类
- * 管理单位的持久化数据，包括装备、技能、AI配置等
+ * 管理单位的持久化数据，专注于数据存储
  */
 UCLASS(BlueprintType, Blueprintable)
-class DREAM_UE56_API UEWUnitState : public UEWBaseState
+class DREAM_UE56_API AEWUnitState : public APlayerState, public IAbilitySystemInterface, public ILevelExperienceInterface
 {
 	GENERATED_BODY()
 
 public:
-	UEWUnitState();
+	AEWUnitState();
+	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	// 重写初始化
-	virtual void InitializeState() override;
+	// AbilitySystemInterface
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
+	// ===================== 等级经验接口实现 =====================
+	
+	// 等级相关
+	virtual int32 GetLevel_Implementation() const override;
+	virtual void SetLevel_Implementation(int32 InLevel) override;
+	virtual void AddToLevel_Implementation(int32 InLevel) override;
+
+	// 经验相关
+	virtual int32 GetExperience_Implementation() const override;
+	virtual void SetExperience_Implementation(int32 InExperience) override;
+	virtual void AddToExperience_Implementation(int32 InExperience) override;
+
+	// 委托获取
+	virtual FOnLevelChanged* GetLevelChangedDelegate() override { return &OnLevelChangedDelegate; }
+	virtual FOnExperienceChanged* GetExperienceChangedDelegate() override { return &OnExperienceChangedDelegate; }
+
+	// 获取基础属性集
+	UFUNCTION(BlueprintCallable, Category = "Ability System", BlueprintPure)
+	UEWBaseAttributeSet* GetBaseAttributeSet() const { return BaseAttributeSet; }
 
 	// 获取单位专属属性集
 	UFUNCTION(BlueprintCallable, Category = "Ability System")
 	UEWUnitAttributeSet* GetUnitAttributeSet() const { return UnitAttributeSet; }
 
-	// 单位基础信息
-	UFUNCTION(BlueprintCallable, Category = "Unit Info")
-	FString GetUnitName() const { return UnitName; }
+	// 委托声明
+	FOnLevelChanged OnLevelChangedDelegate;
+	FOnExperienceChanged OnExperienceChangedDelegate;
 
+	// ===================== 基础信息 Get/Set =====================
+	
 	UFUNCTION(BlueprintCallable, Category = "Unit Info")
-	void SetUnitName(const FString& Name) { UnitName = Name; }
-
-	UFUNCTION(BlueprintCallable, Category = "Unit Info")
-	EUnitFaction GetFaction() const { return Faction; }
-
-	UFUNCTION(BlueprintCallable, Category = "Unit Info")
-	void SetFaction(EUnitFaction InFaction) { Faction = InFaction; }
+	FORCEINLINE FString GetUnitName() const { return UnitName; }
 
 	UFUNCTION(BlueprintCallable, Category = "Unit Info")
-	EUnitClass GetUnitClass() const { return UnitClass; }
+	void SetUnitName(const FString& Name);
 
 	UFUNCTION(BlueprintCallable, Category = "Unit Info")
-	void SetUnitClass(EUnitClass InClass) { UnitClass = InClass; }
+	FORCEINLINE EUnitFaction GetFaction() const { return Faction; }
 
 	UFUNCTION(BlueprintCallable, Category = "Unit Info")
-	int32 GetUnitLevel() const { return UnitLevel; }
+	void SetFaction(EUnitFaction InFaction);
 
-	// 经验值和等级
-	UFUNCTION(BlueprintCallable, Category = "Progression")
-	void AddExperience(float Amount);
+	UFUNCTION(BlueprintCallable, Category = "Unit Info")
+	FORCEINLINE EUnitClass GetUnitClass() const { return UnitClass; }
 
-	UFUNCTION(BlueprintCallable, Category = "Progression")
-	float GetExperience() const { return Experience; }
+	UFUNCTION(BlueprintCallable, Category = "Unit Info")
+	void SetUnitClass(EUnitClass InClass);
 
-	UFUNCTION(BlueprintCallable, Category = "Progression")
-	float GetExperiencePercentage() const;
-
-	// 战斗相关属性
-	UFUNCTION(BlueprintCallable, Category = "Combat")
-	float GetAttack() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Combat")
-	float GetDefense() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Combat")
-	float GetCriticalChance() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Combat")
-	float GetCriticalMultiplier() const;
-
-	// 单位数据配置
-	UFUNCTION(BlueprintCallable, Category = "Configuration")
-	void SetUnitData(UEWUnitData* InUnitData);
-
-	UFUNCTION(BlueprintCallable, Category = "Configuration")
-	UEWUnitData* GetUnitData() const { return UnitData; }
-
-	// 召唤消耗计算
+	// ===================== 召唤相关 Get/Set =====================
+	
 	UFUNCTION(BlueprintCallable, Category = "Summoning")
-	float GetSummonCost() const;
+	FORCEINLINE float GetBaseSummonCost() const { return BaseSummonCost; }
 
 	UFUNCTION(BlueprintCallable, Category = "Summoning")
-	bool CanBeSummoned() const;
+	void SetBaseSummonCost(float InCost);
 
-	// 复活相关
+	// ===================== 复活相关 Get/Set =====================
+	
 	UFUNCTION(BlueprintCallable, Category = "Revival")
-	void StartRevivalCountdown(float RevivalTime = 30.0f);
-
-	UFUNCTION(BlueprintCallable, Category = "Revival")
-	void Revive(float HealthPercentage = 1.0f);
+	FORCEINLINE bool IsReviving() const { return bIsReviving; }
 
 	UFUNCTION(BlueprintCallable, Category = "Revival")
-	bool IsReviving() const { return bIsReviving; }
+	void SetReviving(bool bInReviving);
 
 	UFUNCTION(BlueprintCallable, Category = "Revival")
-	float GetRevivalTimeRemaining() const;
+	FORCEINLINE float GetDefaultRevivalTime() const { return DefaultRevivalTime; }
 
-	// 装备系统（预留）
+	UFUNCTION(BlueprintCallable, Category = "Revival")
+	void SetDefaultRevivalTime(float InTime);
+
+	// ===================== 装备系统 Get/Set =====================
+	
 	UFUNCTION(BlueprintCallable, Category = "Equipment")
-	void EquipItem(class UObject* Item, int32 SlotIndex);
+	TArray<UObject*> GetEquippedItems() const { return EquippedItems; }
 
 	UFUNCTION(BlueprintCallable, Category = "Equipment")
-	void UnequipItem(int32 SlotIndex);
+	UObject* GetEquippedItem(int32 SlotIndex) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Equipment")
+	void SetEquippedItem(int32 SlotIndex, UObject* Item);
+
+	UFUNCTION(BlueprintCallable, Category = "Equipment")
+	int32 GetEquipmentSlotCount() const { return EquippedItems.Num(); }
+
+	UFUNCTION(BlueprintCallable, Category = "Equipment")
+	void SetEquipmentSlotCount(int32 SlotCount);
 
 protected:
+	// 能力系统组件
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
+	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+
+	// 单位专基础属性集
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
+	TObjectPtr<UEWBaseAttributeSet> BaseAttributeSet;
+
 	// 单位专属属性集
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
 	TObjectPtr<UEWUnitAttributeSet> UnitAttributeSet;
 
-	// 单位基础信息
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Unit Info")
+private:
+	// ===================== 等级经验数据 =====================
+	
+	// 等级
+	UPROPERTY(VisibleAnywhere, ReplicatedUsing=OnRep_Level, Category = "Level System")
+	int32 Level = 1;
+
+	// 经验
+	UPROPERTY(VisibleAnywhere, ReplicatedUsing=OnRep_Experience, Category = "Level System")
+	int32 Experience = 0;
+
+	// 网络复制回调
+	UFUNCTION()
+	void OnRep_Level(int32 OldLevel);
+
+	UFUNCTION()
+	void OnRep_Experience(int32 OldExperience);
+
+	// ===================== 基础信息数据 =====================
+	
+	UPROPERTY(EditAnywhere, Replicated, Category = "Unit Info")
 	FString UnitName = TEXT("Unknown Unit");
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Unit Info")
+	UPROPERTY(EditAnywhere, Replicated, Category = "Unit Info")
 	EUnitFaction Faction = EUnitFaction::Neutral;
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Unit Info")
+	UPROPERTY(EditAnywhere, Replicated, Category = "Unit Info")
 	EUnitClass UnitClass = EUnitClass::None;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Progression")
-	int32 UnitLevel = 1;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Progression")
-	float Experience = 0.0f;
-
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Progression")
-	float ExperiencePerLevel = 50.0f;
-
-	// 单位数据配置
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Configuration")
-	TObjectPtr<UEWUnitData> UnitData;
-
-	// 召唤相关
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Summoning")
+	// ===================== 召唤数据 =====================
+	
+	UPROPERTY(EditAnywhere, Replicated, Category = "Summoning")
 	float BaseSummonCost = 30.0f;
 
-	// 复活相关
-	UPROPERTY(BlueprintReadOnly, Category = "Revival")
+	// ===================== 复活数据 =====================
+	
+	UPROPERTY(VisibleAnywhere, Replicated, Category = "Revival")
 	bool bIsReviving = false;
 
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Revival")
+	UPROPERTY(EditAnywhere, Replicated, Category = "Revival")
 	float DefaultRevivalTime = 30.0f;
 
-	UPROPERTY()
-	FTimerHandle RevivalTimerHandle;
-
-	// 装备槽位（预留）
-	UPROPERTY(BlueprintReadOnly, Category = "Equipment")
-	TArray<class UObject*> EquippedItems;
-
-public:
-	// 重写Character生成
-	virtual AActor* SpawnCharacter(UWorld* World, const FVector& Location = FVector::ZeroVector, const FRotator& Rotation = FRotator::ZeroRotator) override;
-
-	// 重写同步方法
-	virtual void SyncStateToCharacter() override;
-	virtual void SyncStateFromCharacter() override;
-
-	// 重写属性变化回调
-	virtual void OnAttributeChangedInternal(const FOnAttributeChangeData& Data) override;
-
-private:
-	// 计算等级
-	void UpdateLevel();
-
-	// 复活完成回调
-	UFUNCTION()
-	void OnRevivalComplete();
-
-	// 应用单位数据
-	void ApplyUnitData();
+	// ===================== 装备数据 =====================
+	
+	UPROPERTY(VisibleAnywhere, Replicated, Category = "Equipment")
+	TArray<UObject*> EquippedItems;
 };

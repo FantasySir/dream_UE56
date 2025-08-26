@@ -98,6 +98,17 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lock System")
 	float LockRange = 1000.0f;
 
+	// 摄像头控制设置
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Settings")
+	bool bInvertMouseY = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera Settings", meta = (ClampMin = "0.1", ClampMax = "10.0"))
+	float MouseSensitivity = 1.0f;
+
+	// 移动控制设置
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement Settings")
+	bool bOrientRotationToMovement = false;
+
 	// 寻找最近的可锁定目标
 	UFUNCTION(BlueprintCallable, Category = "Lock System")
 	AEWUnitBase* FindNearestLockableTarget();

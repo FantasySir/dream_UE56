@@ -98,16 +98,28 @@ void AEWPlayerController::Move(const FInputActionValue& Value)
 {
 	const FVector2D MovementVector = Value.Get<FVector2D>();
 
-	const FRotator Rotation = GetControlRotation();
-	const FRotator YawRotation(0, Rotation.Yaw, 0);
-	
-	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-
 	if (APawn* ControlledPawn = GetPawn())
 	{
+		const FRotator Rotation = GetControlRotation();
+		const FRotator YawRotation(0, Rotation.Yaw, 0);
+		
+		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+
+		// 添加移动输入
 		ControlledPawn->AddMovementInput(ForwardDirection, MovementVector.Y);
 		ControlledPawn->AddMovementInput(RightDirection, MovementVector.X);
+
+		// 可选的角色转向功能
+		if (bOrientRotationToMovement && MovementVector.SizeSquared() > 0.0f)
+		{
+			const FVector MovementDirection = (ForwardDirection * MovementVector.Y + RightDirection * MovementVector.X).GetSafeNormal();
+			if (!MovementDirection.IsZero())
+			{
+				const FRotator TargetRotation = MovementDirection.Rotation();
+				ControlledPawn->SetActorRotation(FMath::RInterpTo(ControlledPawn->GetActorRotation(), TargetRotation, GetWorld()->GetDeltaSeconds(), 10.0f));
+			}
+		}
 	}
 }
 
@@ -117,11 +129,22 @@ void AEWPlayerController::Look(const FInputActionValue& Value)
 
 	if (APawn* ControlledPawn = GetPawn())
 	{
+		// 应用鼠标灵敏度
+		LookAxisVector *= MouseSensitivity;
+		
+		// 检查是否需要反转Y轴
+		if (bInvertMouseY)
+		{
+			LookAxisVector.Y *= -1.0f;
+		}
+
 		// 检查是否在锁定模式
 		AEWCharacterBase* EWCharacter = GetControlledCharacter();
 		if (EWCharacter && EWCharacter->GetLockedTarget())
 		{
-			LockLook(Value);
+			// 锁定模式下降低灵敏度
+			AddYawInput(LookAxisVector.X * 0.5f);
+			AddPitchInput(LookAxisVector.Y * 0.5f);
 		}
 		else
 		{
@@ -262,18 +285,6 @@ AEWCharacterBase* AEWPlayerController::GetControlledCharacter()
 
 void AEWPlayerController::LockLook(const FInputActionValue& Value)
 {
-	// 锁定模式下的相机控制
-	// 这里可以实现围绕锁定目标的相机控制逻辑
-	AEWCharacterBase* EWCharacter = GetControlledCharacter();
-	if (!EWCharacter || !EWCharacter->GetLockedTarget())
-	{
-		return;
-	}
-
-	FVector2D LookAxisVector = Value.Get<FVector2D>();
-	
-	// 可以实现围绕目标的相机控制
-	// 这里先实现基础的视角控制
-	AddYawInput(LookAxisVector.X * 0.5f); // 降低锁定模式下的灵敏度
-	AddPitchInput(LookAxisVector.Y * 0.5f);
+	// 这个函数现在主要用于扩展功能，当前逻辑已整合到Look函数中
+	// 可以在这里实现更复杂的锁定相机逻辑，比如围绕目标旋转等
 }

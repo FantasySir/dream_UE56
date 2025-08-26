@@ -1,343 +1,164 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "GameState/EWUnitState.h"
+#include "AbilitySystem/AttributeSets/EWBaseAttributeSet.h"
 #include "AbilitySystem/AttributeSets/EWUnitAttributeSet.h"
-#include "Character/EWUnitBase.h"
-#include "Data/EWUnitData.h"
-#include "Core/EWGameplayTags.h"
-#include "Engine/World.h"
-#include "TimerManager.h"
+#include "AbilitySystemComponent.h"
+#include "Net/UnrealNetwork.h"
 
-UEWUnitState::UEWUnitState()
+AEWUnitState::AEWUnitState()
 {
-	// 创建单位属性集
-	UnitAttributeSet = CreateDefaultSubobject<UEWUnitAttributeSet>(TEXT("UnitAttributeSet"));
-
-	// 设置默认Character类为单位基类
-	CharacterClass = AEWUnitBase::StaticClass();
-
-	// 初始化装备槽位（假设6个装备槽）
+	SetNetUpdateFrequency(100.f);
+	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>("AbilitySystemComponent");
+	// 配置AbilitySystemComponent
+	AbilitySystemComponent->SetIsReplicated(true);
+	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
+	// 初始化属性集
+	BaseAttributeSet = CreateDefaultSubobject<UEWBaseAttributeSet>("BaseAttributeSet");
+	UnitAttributeSet = CreateDefaultSubobject<UEWUnitAttributeSet>("UnitAttributeSet");
+	
+	// 初始化装备槽位（默认6个装备槽）
 	EquippedItems.SetNum(6);
 }
 
-void UEWUnitState::InitializeState()
+void AEWUnitState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
-	Super::InitializeState();
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	// 应用单位数据配置
-	ApplyUnitData();
+	// 等级经验
+	DOREPLIFETIME(AEWUnitState, Level);
+	DOREPLIFETIME(AEWUnitState, Experience);
 
-	// 初始化等级
-	UpdateLevel();
+	// 基础信息
+	DOREPLIFETIME(AEWUnitState, UnitName);
+	DOREPLIFETIME(AEWUnitState, Faction);
+	DOREPLIFETIME(AEWUnitState, UnitClass);
+
+	// 召唤数据
+	DOREPLIFETIME(AEWUnitState, BaseSummonCost);
+
+	// 复活数据
+	DOREPLIFETIME(AEWUnitState, bIsReviving);
+	DOREPLIFETIME(AEWUnitState, DefaultRevivalTime);
+
+	// 装备数据
+	DOREPLIFETIME(AEWUnitState, EquippedItems);
 }
 
-void UEWUnitState::AddExperience(float Amount)
+UAbilitySystemComponent* AEWUnitState::GetAbilitySystemComponent() const
 {
-	if (Amount <= 0.0f || !IsAlive())
+	return AbilitySystemComponent;
+}
+
+// ===================== 等级经验接口实现 =====================
+
+int32 AEWUnitState::GetLevel_Implementation() const
+{
+	return Level;
+}
+
+void AEWUnitState::SetLevel_Implementation(int32 InLevel)
+{
+	Level = InLevel;
+	OnLevelChangedDelegate.Broadcast(Level, true);
+}
+
+void AEWUnitState::AddToLevel_Implementation(int32 InLevel)
+{
+	SetLevel_Implementation(Level + InLevel);
+}
+
+int32 AEWUnitState::GetExperience_Implementation() const
+{
+	return Experience;
+}
+
+void AEWUnitState::SetExperience_Implementation(int32 InExperience)
+{
+	Experience = InExperience;
+	OnExperienceChangedDelegate.Broadcast(Experience);
+}
+
+void AEWUnitState::AddToExperience_Implementation(int32 InExperience)
+{
+	SetExperience_Implementation(Experience + InExperience);
+}
+
+void AEWUnitState::OnRep_Level(int32 OldLevel)
+{
+	OnLevelChangedDelegate.Broadcast(Level, true);
+}
+
+void AEWUnitState::OnRep_Experience(int32 OldExperience)
+{
+	OnExperienceChangedDelegate.Broadcast(Experience);
+}
+
+// ===================== 基础信息 Get/Set =====================
+
+void AEWUnitState::SetUnitName(const FString& Name)
+{
+	UnitName = Name;
+}
+
+void AEWUnitState::SetFaction(EUnitFaction InFaction)
+{
+	Faction = InFaction;
+}
+
+void AEWUnitState::SetUnitClass(EUnitClass InClass)
+{
+	UnitClass = InClass;
+}
+
+// ===================== 召唤相关 Get/Set =====================
+
+void AEWUnitState::SetBaseSummonCost(float InCost)
+{
+	if (InCost >= 0.0f)
 	{
-		return;
-	}
-
-	Experience += Amount;
-	UpdateLevel();
-}
-
-float UEWUnitState::GetExperiencePercentage() const
-{
-	if (ExperiencePerLevel <= 0.0f)
-	{
-		return 0.0f;
-	}
-
-	float CurrentLevelExp = Experience - ((UnitLevel - 1) * ExperiencePerLevel);
-	return FMath::Clamp(CurrentLevelExp / ExperiencePerLevel, 0.0f, 1.0f);
-}
-
-float UEWUnitState::GetAttack() const
-{
-	// TODO: 在UEWUnitAttributeSet中添加Attack属性
-	/*
-	if (UnitAttributeSet)
-	{
-		return UnitAttributeSet->GetAttack();
-	}
-	*/
-	return 0.0f;
-}
-
-float UEWUnitState::GetDefense() const
-{
-	// TODO: 在UEWUnitAttributeSet中添加Defense属性
-	/*
-	if (UnitAttributeSet)
-	{
-		return UnitAttributeSet->GetDefense();
-	}
-	*/
-	return 0.0f;
-}
-
-float UEWUnitState::GetCriticalChance() const
-{
-	// TODO: 在UEWUnitAttributeSet中添加CriticalChance属性
-	/*
-	if (UnitAttributeSet)
-	{
-		return UnitAttributeSet->GetCriticalChance();
-	}
-	*/
-	return 0.0f;
-}
-
-float UEWUnitState::GetCriticalMultiplier() const
-{
-	// TODO: 在UEWUnitAttributeSet中添加CriticalMultiplier属性
-	/*
-	if (UnitAttributeSet)
-	{
-		return UnitAttributeSet->GetCriticalMultiplier();
-	}
-	*/
-	return 0.0f;
-}
-
-void UEWUnitState::SetUnitData(UEWUnitData* InUnitData)
-{
-	UnitData = InUnitData;
-	ApplyUnitData();
-}
-
-float UEWUnitState::GetSummonCost() const
-{
-	float Cost = BaseSummonCost;
-	
-	// 根据单位等级调整消耗
-	Cost += (UnitLevel - 1) * 5.0f;
-	
-	// 根据单位职业调整消耗
-	switch (UnitClass)
-	{
-	case EUnitClass::Warrior:
-		Cost *= 1.0f;
-		break;
-	case EUnitClass::Mage:
-		Cost *= 1.2f;
-		break;
-	case EUnitClass::Archer:
-		Cost *= 0.9f;
-		break;
-	case EUnitClass::Rogue:
-		Cost *= 0.8f;
-		break;
-	case EUnitClass::Priest:
-		Cost *= 1.1f;
-		break;
-	default:
-		break;
-	}
-
-	return Cost;
-}
-
-bool UEWUnitState::CanBeSummoned() const
-{
-	return IsAlive() && !bIsReviving && !HasCharacterActor();
-}
-
-void UEWUnitState::StartRevivalCountdown(float RevivalTime)
-{
-	if (IsAlive() || bIsReviving)
-	{
-		return;
-	}
-
-	bIsReviving = true;
-	
-	UWorld* World = GetWorld();
-	if (World)
-	{
-		World->GetTimerManager().SetTimer(RevivalTimerHandle, this, &UEWUnitState::OnRevivalComplete, RevivalTime, false);
-		UE_LOG(LogTemp, Log, TEXT("UEWUnitState::StartRevivalCountdown - %s revival started, time: %.1f"), *UnitName, RevivalTime);
+		BaseSummonCost = InCost;
 	}
 }
 
-void UEWUnitState::Revive(float HealthPercentage)
+// ===================== 复活相关 Get/Set =====================
+
+void AEWUnitState::SetReviving(bool bInReviving)
 {
-	if (IsAlive())
-	{
-		return;
-	}
-
-	// 停止复活倒计时
-	UWorld* World = GetWorld();
-	if (World && RevivalTimerHandle.IsValid())
-	{
-		World->GetTimerManager().ClearTimer(RevivalTimerHandle);
-	}
-
-	bIsReviving = false;
-
-	// 恢复血量
-	if (UnitAttributeSet && AbilitySystemComponent)
-	{
-		float MaxHealth = UnitAttributeSet->GetMaxHealth();
-		float NewHealth = MaxHealth * FMath::Clamp(HealthPercentage, 0.1f, 1.0f);
-		
-		// 通过GE恢复血量
-		// TODO: 创建恢复血量的GameplayEffect
-	}
-
-	// 更新状态标签
-	RemoveStateTag(FEWGameplayTags::State_Dead);
-	AddStateTag(FEWGameplayTags::State_Alive);
-
-	UE_LOG(LogTemp, Log, TEXT("UEWUnitState::Revive - %s revived with %.1f%% health"), *UnitName, HealthPercentage * 100.0f);
+	bIsReviving = bInReviving;
 }
 
-float UEWUnitState::GetRevivalTimeRemaining() const
+void AEWUnitState::SetDefaultRevivalTime(float InTime)
 {
-	if (!bIsReviving)
+	if (InTime > 0.0f)
 	{
-		return 0.0f;
+		DefaultRevivalTime = InTime;
 	}
-
-	UWorld* World = GetWorld();
-	if (World && RevivalTimerHandle.IsValid())
-	{
-		return World->GetTimerManager().GetTimerRemaining(RevivalTimerHandle);
-	}
-
-	return 0.0f;
 }
 
-void UEWUnitState::EquipItem(class UObject* Item, int32 SlotIndex)
+// ===================== 装备系统 Get/Set =====================
+
+UObject* AEWUnitState::GetEquippedItem(int32 SlotIndex) const
+{
+	if (SlotIndex >= 0 && SlotIndex < EquippedItems.Num())
+	{
+		return EquippedItems[SlotIndex];
+	}
+	return nullptr;
+}
+
+void AEWUnitState::SetEquippedItem(int32 SlotIndex, UObject* Item)
 {
 	if (SlotIndex >= 0 && SlotIndex < EquippedItems.Num())
 	{
 		EquippedItems[SlotIndex] = Item;
-		
-		// 这里可以添加装备效果的应用逻辑
-		// 例如：属性加成、技能解锁等
 	}
 }
 
-void UEWUnitState::UnequipItem(int32 SlotIndex)
+void AEWUnitState::SetEquipmentSlotCount(int32 SlotCount)
 {
-	if (SlotIndex >= 0 && SlotIndex < EquippedItems.Num())
+	if (SlotCount >= 0)
 	{
-		EquippedItems[SlotIndex] = nullptr;
-		
-		// 这里可以添加移除装备效果的逻辑
+		EquippedItems.SetNum(SlotCount);
 	}
-}
-
-AActor* UEWUnitState::SpawnCharacter(UWorld* World, const FVector& Location, const FRotator& Rotation)
-{
-	AActor* Character = Super::SpawnCharacter(World, Location, Rotation);
-	
-	if (AEWUnitBase* UnitCharacter = Cast<AEWUnitBase>(Character))
-	{
-		// 设置单位的基础信息
-		UnitCharacter->SetFaction(Faction);
-		// TODO: 在AEWUnitBase中添加SetUnitClass方法
-		// UnitCharacter->SetUnitClass(UnitClass);
-		
-		// 应用单位数据
-		if (UnitData)
-		{
-			// TODO: 在AEWUnitBase中添加SetUnitData方法
-			// UnitCharacter->SetUnitData(UnitData);
-		}
-	}
-
-	return Character;
-}
-
-void UEWUnitState::SyncStateToCharacter()
-{
-	Super::SyncStateToCharacter();
-
-	if (AEWUnitBase* UnitCharacter = Cast<AEWUnitBase>(GetCharacterActor()))
-	{
-		// 同步单位特有的状态
-		UnitCharacter->SetFaction(Faction);
-		// TODO: 在AEWUnitBase中添加SetUnitClass方法
-		// UnitCharacter->SetUnitClass(UnitClass);
-		
-		if (UnitData)
-		{
-			// TODO: 在AEWUnitBase中添加SetUnitData方法
-			// UnitCharacter->SetUnitData(UnitData);
-		}
-	}
-}
-
-void UEWUnitState::SyncStateFromCharacter()
-{
-	Super::SyncStateFromCharacter();
-
-	if (AEWUnitBase* UnitCharacter = Cast<AEWUnitBase>(GetCharacterActor()))
-	{
-		// 从单位角色同步状态
-		Faction = UnitCharacter->GetFaction();
-		// TODO: 在AEWUnitBase中添加GetUnitClass方法
-		// UnitClass = UnitCharacter->GetUnitClass();
-	}
-}
-
-void UEWUnitState::OnAttributeChangedInternal(const FOnAttributeChangeData& Data)
-{
-	Super::OnAttributeChangedInternal(Data);
-
-	// 单位特有的属性变化处理
-	if (Data.Attribute == UnitAttributeSet->GetHealthAttribute())
-	{
-		if (Data.NewValue <= 0.0f && Data.OldValue > 0.0f)
-		{
-			// 单位死亡
-			DestroyCharacter();
-			
-			// 开始复活倒计时
-			StartRevivalCountdown(DefaultRevivalTime);
-		}
-	}
-}
-
-void UEWUnitState::UpdateLevel()
-{
-	if (ExperiencePerLevel <= 0.0f)
-	{
-		return;
-	}
-
-	int32 NewLevel = FMath::FloorToInt(Experience / ExperiencePerLevel) + 1;
-	
-	if (NewLevel != UnitLevel)
-	{
-		int32 OldLevel = UnitLevel;
-		UnitLevel = NewLevel;
-		
-		UE_LOG(LogTemp, Log, TEXT("UEWUnitState::UpdateLevel - %s level up! %d -> %d"), *UnitName, OldLevel, UnitLevel);
-		
-		// 这里可以添加升级奖励逻辑
-		// 例如：属性增长、技能解锁等
-	}
-}
-
-void UEWUnitState::OnRevivalComplete()
-{
-	Revive(0.3f); // 复活时恢复30%血量
-}
-
-void UEWUnitState::ApplyUnitData()
-{
-	if (!UnitData)
-	{
-		return;
-	}
-
-	// 从UnitData应用配置
-	// 这里需要等UEWUnitData类实现后再完善
-	
-	UE_LOG(LogTemp, Log, TEXT("UEWUnitState::ApplyUnitData - Applied unit data for %s"), *UnitName);
 }

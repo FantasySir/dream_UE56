@@ -5,6 +5,8 @@
 #include "AbilitySystem/AttributeSets/EWPlayerAttributeSet.h"
 #include "AbilitySystem/AttributeSets/EWCombatAttributeSet.h"
 #include "Character/EWUnitBase.h"
+#include "GameState/EWPlayerState.h"
+#include "Player/EWPlayerController.h"
 #include "Player/EWUnitManager.h"
 #include "Gameplay/EWTimeManager.h"
 #include "AbilitySystemComponent.h"
@@ -15,36 +17,46 @@
 // Sets default values
 AEWCharacterBase::AEWCharacterBase()
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-
-	// 创建能力系统组件
-	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>("AbilitySystemComponent");
-	AbilitySystemComponent->SetIsReplicated(true);
-	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
-
-	// 创建属性集
-	BaseAttributeSet = CreateDefaultSubobject<UEWBaseAttributeSet>(TEXT("BaseAttributeSet"));
-	PlayerAttributeSet = CreateDefaultSubobject<UEWPlayerAttributeSet>(TEXT("PlayerAttributeSet"));
-	CombatAttributeSet = CreateDefaultSubobject<UEWCombatAttributeSet>(TEXT("CombatAttributeSet"));
+ 	PrimaryActorTick.bCanEverTick = true;
 
 	// 创建单位管理器
-	UnitManager = CreateDefaultSubobject<UEWUnitManager>(TEXT("UnitManager"));
+	UnitManager = CreateDefaultSubobject<UEWUnitManager>("UnitManager");
 }
 
-// Called when the game starts or when spawned
-void AEWCharacterBase::BeginPlay()
+void AEWCharacterBase::PossessedBy(AController* NewController)
 {
-	Super::BeginPlay();
-	
-	// 初始化能力系统
-	InitializeAbilitySystem();
+	Super::PossessedBy(NewController);
 
-	// 初始化单位管理器
+	// 当被控制器占有时初始化能力系统Actor信息
+	InitAbilityActorInfo();
+
 	if (UnitManager)
 	{
 		UnitManager->Initialize(12, 4); // 默认12个总槽位，4个战斗槽位
 	}
+}
+
+void AEWCharacterBase::InitAbilityActorInfo()
+{
+	AEWPlayerState* EWPlayerState = GetPlayerState<AEWPlayerState>();
+	check(EWPlayerState);
+	EWPlayerState->GetAbilitySystemComponent()->InitAbilityActorInfo(EWPlayerState, this);
+	//Cast<AbilitySystemComponent>(EWPlayerState->GetAbilitySystemComponent())->AbilityActorInfoSet();
+	AbilitySystemComponent = EWPlayerState->GetAbilitySystemComponent();
+	BaseAttributeSet = EWPlayerState->GetBaseAttributeSet();
+	PlayerAttributeSet = EWPlayerState->GetPlayerAttributeSet();
+	//OnAscRegistered.Broadcast(AbilitySystemComponent);
+	//AbilitySystemComponent->RegisterGameplayTagEvent(FAuraGameplayTags::Get().Debuff_Stun, EGameplayTagEventType::NewOrRemoved).AddUObject(this, &AAuraCharacter::StunTagChanged);
+
+	/**
+	if (AEWPlayerController* EWPlayerController = Cast<AEWPlayerController>(GetController()))
+	{
+		if (AAuraHUD* AuraHUD = Cast<AAuraHUD>(AuraPlayerController->GetHUD()))
+		{
+			AuraHUD->InitOverlay(AuraPlayerController, AuraPlayerState, AbilitySystemComponent, AttributeSet);
+		}
+	}
+	**/
 }
 
 // Called every frame
@@ -55,14 +67,8 @@ void AEWCharacterBase::Tick(float DeltaTime)
 	// 行动值自动回复
 	if (AbilitySystemComponent && PlayerAttributeSet)
 	{
-		float CurrentActionPoint = GetActionPoint();
-		float MaxActionPoint = GetMaxActionPoint();
-		
-		if (CurrentActionPoint < MaxActionPoint)
-		{
-			float NewActionPoint = FMath::Min(CurrentActionPoint + ActionPointRegenRate * DeltaTime, MaxActionPoint);
-			// 这里需要通过GE来修改属性，暂时先这样处理
-		}
+		// 这里可以添加行动值自动回复逻辑
+		// 需要通过GameplayEffect来实现属性修改
 	}
 }
 
@@ -77,106 +83,46 @@ UAbilitySystemComponent* AEWCharacterBase::GetAbilitySystemComponent() const
 	return AbilitySystemComponent;
 }
 
-void AEWCharacterBase::InitializeAbilitySystem()
-{
-	if (AbilitySystemComponent)
-	{
-		AbilitySystemComponent->InitAbilityActorInfo(this, this);
-
-		// 应用默认属性效果
-		if (DefaultAttributeEffect)
-		{
-			FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
-			EffectContext.AddSourceObject(this);
-
-			FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(DefaultAttributeEffect, 1, EffectContext);
-			if (SpecHandle.IsValid())
-			{
-				AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-			}
-		}
-
-		// 给予起始能力
-		for (TSubclassOf<UGameplayAbility>& StartupAbility : StartupAbilities)
-		{
-			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(StartupAbility, 1, INDEX_NONE, this));
-		}
-	}
-}
-
-float AEWCharacterBase::GetHealth() const
-{
-	if (BaseAttributeSet)
-	{
-		return BaseAttributeSet->GetHealth();
-	}
-	return 0.0f;
-}
-
-float AEWCharacterBase::GetMaxHealth() const
-{
-	if (BaseAttributeSet)
-	{
-		return BaseAttributeSet->GetMaxHealth();
-	}
-	return 0.0f;
-}
-
+//TODO: 百分比计算可以考虑后续移到UI中
 float AEWCharacterBase::GetHealthPercentage() const
 {
-	float MaxHealth = GetMaxHealth();
-	if (MaxHealth > 0)
+	if (BaseAttributeSet)
 	{
-		return GetHealth() / MaxHealth;
+		float MaxHealth = BaseAttributeSet->GetMaxHealth();
+		if (MaxHealth > 0)
+		{
+			return BaseAttributeSet->GetHealth() / MaxHealth;
+		}
+	}
+	return 0.0f;
+}
+
+float AEWCharacterBase::GetManaPercentage() const
+{
+	if (BaseAttributeSet)
+	{
+		float MaxMana = BaseAttributeSet->GetMaxMana();
+		if (MaxMana > 0)
+		{
+			return BaseAttributeSet->GetMana() / MaxMana;
+		}
 	}
 	return 0.0f;
 }
 
 bool AEWCharacterBase::IsAlive() const
 {
-	return GetHealth() > 0.0f;
-}
-
-float AEWCharacterBase::GetMana() const
-{
 	if (BaseAttributeSet)
 	{
-		return BaseAttributeSet->GetMana();
+		return BaseAttributeSet->GetHealth() > 0.0f;
 	}
-	return 0.0f;
-}
-
-float AEWCharacterBase::GetMaxMana() const
-{
-	if (BaseAttributeSet)
-	{
-		return BaseAttributeSet->GetMaxMana();
-	}
-	return 0.0f;
-}
-
-float AEWCharacterBase::GetActionPoint() const
-{
-	if (PlayerAttributeSet)
-	{
-		return PlayerAttributeSet->GetActionPoint();
-	}
-	return 0.0f;
-}
-
-float AEWCharacterBase::GetMaxActionPoint() const
-{
-	if (PlayerAttributeSet)
-	{
-		return PlayerAttributeSet->GetMaxActionPoint();
-	}
-	return 0.0f;
+	return false;
 }
 
 bool AEWCharacterBase::CanPauseTime() const
 {
 	// 检查行动值是否足够
-	if (GetActionPoint() < PauseTimeCost)
+	if (PlayerAttributeSet && PlayerAttributeSet->GetActionPoint() < PauseTimeCost)
 	{
 		return false;
 	}
@@ -255,8 +201,11 @@ void AEWCharacterBase::UnlockTarget()
 bool AEWCharacterBase::CanSummonUnit(TSubclassOf<AEWUnitBase> UnitClass) const
 {
 	// 检查魔法值是否足够
-	// 这里需要根据UnitClass的具体消耗来判断
-	return GetMana() >= 30.0f; // 临时数值
+	if (BaseAttributeSet)
+	{
+		return BaseAttributeSet->GetMana() >= 30.0f; // 临时数值，应该根据UnitClass来确定
+	}
+	return false;
 }
 
 AEWUnitBase* AEWCharacterBase::SummonUnit(TSubclassOf<AEWUnitBase> UnitClass, FVector SpawnLocation)
@@ -272,33 +221,36 @@ AEWUnitBase* AEWCharacterBase::SummonUnit(TSubclassOf<AEWUnitBase> UnitClass, FV
 		return nullptr;
 	}
 
-	// 生成单位
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = this;
-	SpawnParams.Instigator = GetInstigator();
-
-	AEWUnitBase* SummonedUnit = World->SpawnActor<AEWUnitBase>(UnitClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
+	//TODO 1. 先创建 UnitState (数据层)
+	// 2. 生成单位 (表现层)
 	
-	if (SummonedUnit)
-	{
-		// 添加到控制列表
-		ControlledUnits.Add(SummonedUnit);
-		
-		// 绑定死亡事件
-		// SummonedUnit->OnDeath.AddDynamic(this, &AEWCharacterBase::OnControlledUnitDeath);
-		
-		// 消耗魔法值
-		// TODO: 通过GE消耗魔法值
-	}
-
-	return SummonedUnit;
+	return nullptr;
 }
 
-void AEWCharacterBase::OnControlledUnitDeath(AEWUnitBase* DeadUnit)
+//TODO: 这个函数基本上是废弃的，但是它赋予默认属性效果的实现值得参考，先放在这里
+void AEWCharacterBase::InitializeAbilitySystem()
 {
-	if (DeadUnit)
+	if (AbilitySystemComponent)
 	{
-		ControlledUnits.Remove(DeadUnit);
+		AbilitySystemComponent->InitAbilityActorInfo(this, this);
+
+		// 应用默认属性效果
+		if (DefaultAttributeEffect)
+		{
+			FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
+			EffectContext.AddSourceObject(this);
+
+			FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(DefaultAttributeEffect, 1, EffectContext);
+			if (SpecHandle.IsValid())
+			{
+				AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+			}
+		}
+
+		// 给予起始能力
+		for (TSubclassOf<UGameplayAbility>& StartupAbility : StartupAbilities)
+		{
+			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(StartupAbility, 1, INDEX_NONE, this));
+		}
 	}
 }
-

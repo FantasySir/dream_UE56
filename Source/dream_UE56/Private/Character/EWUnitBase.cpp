@@ -4,6 +4,7 @@
 #include "AbilitySystem/AttributeSets/EWBaseAttributeSet.h"
 #include "AbilitySystem/AttributeSets/EWCombatAttributeSet.h"
 #include "Data/EWUnitData.h"
+#include "GameState/EWUnitState.h"
 #include "Gameplay/EWTimeManager.h"
 #include "AbilitySystemComponent.h"
 #include "Abilities/GameplayAbility.h"
@@ -21,30 +22,12 @@ AEWUnitBase::AEWUnitBase()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
-	// 创建能力系统组件
-	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
-	AbilitySystemComponent->SetIsReplicated(true);
-	
-	// 设置复制模式 - 对于玩家角色，通常使用 Full，对于AI/NPC使用 Mixed
-	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
-
-	// 创建属性集
-	BaseAttributeSet = CreateDefaultSubobject<UEWBaseAttributeSet>(TEXT("BaseAttributeSet"));
-	CombatAttributeSet = CreateDefaultSubobject<UEWCombatAttributeSet>(TEXT("CombatAttributeSet"));
 }
 
 // Called when the game starts or when spawned
 void AEWUnitBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	// 初始化能力系统
-	if (AbilitySystemComponent)
-	{
-		InitializeAbilitySystem();
-	}
-
 	// 注册到时间管理系统
 	if (UWorld* World = GetWorld())
 	{
@@ -53,6 +36,17 @@ void AEWUnitBase::BeginPlay()
 			TimeManager->RegisterTimeSensitiveActor(this);
 		}
 	}
+
+	check(UnitState);
+	InitAbilityActorInfo();
+}
+
+void AEWUnitBase::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	
+	check(UnitState);
+	StartAI();
 }
 
 // Called when the game ends or when destroyed
@@ -76,10 +70,12 @@ void AEWUnitBase::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	// 检查魔法值是否满了，如果满了则释放技能
+	/**
 	if (CanCastSkill() && GetManaPercentage() >= 1.0f)
 	{
 		CastRandomSkill();
 	}
+	**/
 }
 
 // Called to bind functionality to input
@@ -93,180 +89,53 @@ UAbilitySystemComponent* AEWUnitBase::GetAbilitySystemComponent() const
 	return AbilitySystemComponent;
 }
 
-void AEWUnitBase::InitializeAbilitySystem()
+void AEWUnitBase::InitAbilityActorInfo()
 {
-	if (!AbilitySystemComponent)
-	{
-		return;
-	}
+	AEWUnitState* EWUnitState = GetPlayerState<AEWUnitState>();
+	check(EWUnitState);
+	EWUnitState->GetAbilitySystemComponent()->InitAbilityActorInfo(EWUnitState, this);
+	AbilitySystemComponent = EWUnitState->GetAbilitySystemComponent();
+	BaseAttributeSet = EWUnitState->GetBaseAttributeSet();
+	UnitAttributeSet = EWUnitState->GetUnitAttributeSet();
 
-	// 初始化AbilitySystemComponent与此Actor
-	AbilitySystemComponent->InitAbilityActorInfo(this, this);
-
-	// 优先使用UnitData中的配置，如果没有则使用直接设置的属性
-	TSubclassOf<UGameplayEffect> EffectToApply = DefaultAttributeEffect;
-	TArray<TSubclassOf<UGameplayAbility>> AbilitiesToGrant = StartupAbilities;
-
-	if (UnitData)
-	{
-		if (UnitData->DefaultAttributeEffectClass)
-		{
-			EffectToApply = UnitData->DefaultAttributeEffectClass;
-		}
-		if (UnitData->StartupAbilities.Num() > 0)
-		{
-			AbilitiesToGrant = UnitData->StartupAbilities;
-		}
-	}
-
-	// 应用默认属性效果
-	if (EffectToApply)
-	{
-		FGameplayEffectContextHandle EffectContext = AbilitySystemComponent->MakeEffectContext();
-		EffectContext.AddSourceObject(this);
-
-		FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(EffectToApply, 1, EffectContext);
-		if (SpecHandle.IsValid())
-		{
-			AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-		}
-	}
-
-	// 给予起始能力
-	for (auto& StartupAbility : AbilitiesToGrant)
-	{
-		if (StartupAbility)
-		{
-			AbilitySystemComponent->GiveAbility(FGameplayAbilitySpec(StartupAbility, 1, INDEX_NONE, this));
-		}
-	}
-}
-
-float AEWUnitBase::GetHealth() const
-{
-	if (BaseAttributeSet)
-	{
-		return BaseAttributeSet->GetHealth();
-	}
-	return 0.0f;
-}
-
-float AEWUnitBase::GetMaxHealth() const
-{
-	if (BaseAttributeSet)
-	{
-		return BaseAttributeSet->GetMaxHealth();
-	}
-	return 0.0f;
 }
 
 float AEWUnitBase::GetHealthPercentage() const
 {
-	const float MaxHealth = GetMaxHealth();
-	if (MaxHealth > 0.0f)
-	{
-		return GetHealth() / MaxHealth;
-	}
-	return 0.0f;
-}
-
-
-bool AEWUnitBase::IsAlive() const
-{
-	return GetHealth() > 0.0f && CurrentState != EUnitState::Dead;
-}
-
-float AEWUnitBase::GetMana() const
-{
 	if (BaseAttributeSet)
 	{
-		return BaseAttributeSet->GetMana();
-	}
-	return 0.0f;
-}
-
-float AEWUnitBase::GetMaxMana() const
-{
-	if (BaseAttributeSet)
-	{
-		return BaseAttributeSet->GetMaxMana();
+		float MaxHealth = BaseAttributeSet->GetMaxHealth();
+		if (MaxHealth > 0)
+		{
+			return BaseAttributeSet->GetHealth() / MaxHealth;
+		}
 	}
 	return 0.0f;
 }
 
 float AEWUnitBase::GetManaPercentage() const
 {
-	float MaxMana = GetMaxMana();
-	if (MaxMana > 0)
+	if (BaseAttributeSet)
 	{
-		return GetMana() / MaxMana;
+		float MaxMana = BaseAttributeSet->GetMaxMana();
+		if (MaxMana > 0)
+		{
+			return BaseAttributeSet->GetMana() / MaxMana;
+		}
 	}
 	return 0.0f;
 }
 
-float AEWUnitBase::GetStamina() const
+bool AEWUnitBase::IsAlive() const
 {
 	if (BaseAttributeSet)
 	{
-		return BaseAttributeSet->GetStamina();
+		return BaseAttributeSet->GetHealth() > 0.0f && CurrentState != EUnitState::Dead;
 	}
-	return 0.0f;
+	return false;
 }
 
-float AEWUnitBase::GetMaxStamina() const
-{
-	if (BaseAttributeSet)
-	{
-		return BaseAttributeSet->GetMaxStamina();
-	}
-	return 0.0f;
-}
-
-float AEWUnitBase::GetPhysicalAttack() const
-{
-	if (CombatAttributeSet)
-	{
-		return CombatAttributeSet->GetPhysicalAttack();
-	}
-	return 0.0f;
-}
-
-float AEWUnitBase::GetMagicalAttack() const
-{
-	if (CombatAttributeSet)
-	{
-		return CombatAttributeSet->GetMagicalAttack();
-	}
-	return 0.0f;
-}
-
-float AEWUnitBase::GetPhysicalDefense() const
-{
-	if (CombatAttributeSet)
-	{
-		return CombatAttributeSet->GetPhysicalDefense();
-	}
-	return 0.0f;
-}
-
-float AEWUnitBase::GetMagicalDefense() const
-{
-	if (CombatAttributeSet)
-	{
-		return CombatAttributeSet->GetMagicalDefense();
-	}
-	return 0.0f;
-}
-
-int32 AEWUnitBase::GetUnitLevel() const
-{
-	if (BaseAttributeSet)
-	{
-		return FMath::RoundToInt(BaseAttributeSet->GetUnitLevel());
-	}
-	return 1;
-}
-
+//是否敌对
 bool AEWUnitBase::IsHostileTo(AEWUnitBase* OtherUnit) const
 {
 	if (!OtherUnit)
@@ -281,6 +150,7 @@ bool AEWUnitBase::IsHostileTo(AEWUnitBase* OtherUnit) const
 	return false;
 }
 
+//是否友善
 bool AEWUnitBase::IsFriendlyTo(AEWUnitBase* OtherUnit) const
 {
 	if (!OtherUnit)
@@ -337,12 +207,12 @@ void AEWUnitBase::AttackTarget(AEWUnitBase* Target)
 	if (!CanAttack(Target))
 		return;
 	LastAttackTime = GetWorld()->GetTimeSeconds();
-	float DamageAmount = GetPhysicalAttack();
+	float DamageAmount = CombatAttributeSet ? CombatAttributeSet->GetPhysicalAttack() : 10.0f;
 	Target->TakeDamageFromUnit(DamageAmount, this);
 	if (BaseAttributeSet)
 	{
-		float CurrentMana = GetMana();
-		float MaxMana = GetMaxMana();
+		float CurrentMana = BaseAttributeSet->GetMana();
+		float MaxMana = BaseAttributeSet->GetMaxMana();
 		float ManaGain = 10.0f;
 		float NewMana = FMath::Min(CurrentMana + ManaGain, MaxMana);
 		const_cast<UEWBaseAttributeSet*>(BaseAttributeSet)->SetMana(NewMana);
@@ -426,7 +296,7 @@ void AEWUnitBase::TakeDamageFromUnit(float DamageAmount, AEWUnitBase* DamageSour
 	{
 		// 这里可以创建一个伤害GameplayEffect来应用伤害
 		// 暂时直接修改属性
-		float NewHealth = FMath::Max(0.0f, GetHealth() - DamageAmount);
+		float NewHealth = FMath::Max(0.0f, BaseAttributeSet->GetHealth() - DamageAmount);
 		
 		// 触发伤害事件
 		OnDamaged.Broadcast(this, DamageAmount, DamageSource);

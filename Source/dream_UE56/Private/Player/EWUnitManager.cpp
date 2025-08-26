@@ -145,14 +145,15 @@ TArray<AEWUnitBase*> UEWUnitManager::SummonBattleUnits(UWorld* World, const TArr
 			FVector SpawnLoc = SpawnLocations.IsValidIndex(i) ? SpawnLocations[i] : FVector::ZeroVector;
 			AEWUnitBase* Unit = World->SpawnActor<AEWUnitBase>(Slot.UnitClass, SpawnLoc, FRotator::ZeroRotator, Params);
 			if (Unit)
-			{
+			{	
+				//TODO:
 				// 设置血量和魔法值
-				float MaxHealth = Unit->GetMaxHealth();
-				float MaxMana = Unit->GetMaxMana();
-				Unit->GetBaseAttributeSet()->SetHealth(MaxHealth * Slot.HealthPercentage);
-				Unit->GetBaseAttributeSet()->SetMana(MaxMana * Slot.ManaPercentage);
-				Result.Add(Unit);
-				SummonedUnits.Add(Unit);
+				//float MaxHealth = Unit->GetMaxHealth();
+				//float MaxMana = Unit->GetMaxMana();
+				//Unit->GetBaseAttributeSet()->SetHealth(MaxHealth * Slot.HealthPercentage);
+				//Unit->GetBaseAttributeSet()->SetMana(MaxMana * Slot.ManaPercentage);
+				//Result.Add(Unit);
+				//SummonedUnits.Add(Unit);
 			}
 		}
 	}

@@ -3,138 +3,186 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameState/EWBaseState.h"
+#include "AbilitySystemInterface.h"
+#include "GameFramework/PlayerState.h"
+#include "Interfaces/LevelExperienceInterface.h"
 #include "EWPlayerState.generated.h"
 
+class UAbilitySystemComponent;
+class UEWBaseAttributeSet;
 class UEWPlayerAttributeSet;
-class UEWUnitManager;
-class UEWUnitState;
+class AEWUnitState;
+
+// 单位列表操作类型枚举
+UENUM(BlueprintType)
+enum class EUnitListOperationType : uint8
+{
+	AddUnit		UMETA(DisplayName = "Add Unit"),		// 增加单位
+	SwapUnit	UMETA(DisplayName = "Swap Unit"),		// 交换单位
+	RemoveUnit	UMETA(DisplayName = "Remove Unit"),		// 移除单位
+	SetList		UMETA(DisplayName = "Set List")        // 设置列表
+};
+
+// 声明委托类型
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnUnitListChanged, const TArray<AEWUnitState*>&, UnitList, EUnitListOperationType, OperationType, int32, OperationIndex);
 
 /**
  * 玩家状态类
- * 管理玩家主角的持久化数据，包括单位管理、技能解锁等
+ * 管理玩家主角的持久化数据，包括玩家专属属性集和统一的单位列表
  */
 UCLASS(BlueprintType, Blueprintable)
-class DREAM_UE56_API UEWPlayerState : public UEWBaseState
+class DREAM_UE56_API AEWPlayerState : public APlayerState, public IAbilitySystemInterface, public ILevelExperienceInterface
 {
 	GENERATED_BODY()
 
 public:
-	UEWPlayerState();
+	AEWPlayerState();
 
-	// 重写初始化
-	virtual void InitializeState() override;
+	// 网络复制
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	// AbilitySystemInterface
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
+	// ===================== 等级经验接口实现 =====================
+	
+	// 等级相关
+	virtual int32 GetLevel_Implementation() const override;
+	virtual void SetLevel_Implementation(int32 InLevel) override;
+	virtual void AddToLevel_Implementation(int32 InLevel) override;
+
+	// 经验相关
+	virtual int32 GetExperience_Implementation() const override;
+	virtual void SetExperience_Implementation(int32 InExperience) override;
+	virtual void AddToExperience_Implementation(int32 InExperience) override;
+
+	// 委托获取
+	virtual FOnLevelChanged* GetLevelChangedDelegate() override { return &OnLevelChangedDelegate; }
+	virtual FOnExperienceChanged* GetExperienceChangedDelegate() override { return &OnExperienceChangedDelegate; }
+	
+	// 获取基础属性集
+	UFUNCTION(BlueprintCallable, Category = "Ability System", BlueprintPure)
+	UEWBaseAttributeSet* GetBaseAttributeSet() const { return BaseAttributeSet; }
 
 	// 获取玩家专属属性集
-	UFUNCTION(BlueprintCallable, Category = "Ability System")
+	UFUNCTION(BlueprintCallable, Category = "Ability System", BlueprintPure)
 	UEWPlayerAttributeSet* GetPlayerAttributeSet() const { return PlayerAttributeSet; }
 
-	// 获取单位管理器
+	// 委托声明
+	FOnLevelChanged OnLevelChangedDelegate;
+	FOnExperienceChanged OnExperienceChangedDelegate;
+
+	// 单位列表管理（只读访问）
+	UFUNCTION(BlueprintCallable, Category = "Unit Management", BlueprintPure)
+	TArray<AEWUnitState*> GetUnitList() const { return UnitList; }
+
+	// 获取指定索引的单位（安全访问）
+	UFUNCTION(BlueprintCallable, Category = "Unit Management", BlueprintPure)
+	AEWUnitState* GetUnitAtIndex(int32 Index) const;
+
+	// 获取首发单位列表
+	UFUNCTION(BlueprintCallable, Category = "Unit Management", BlueprintPure)
+	TArray<AEWUnitState*> GetStartingUnits() const;
+
+	// 获取替补单位列表
+	UFUNCTION(BlueprintCallable, Category = "Unit Management", BlueprintPure)
+	TArray<AEWUnitState*> GetBenchUnits() const;
+
+	// 单位操作（网络安全）- 仅在服务器端执行
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Unit Management")
+	void Server_AddUnit(AEWUnitState* Unit, int32 Index = -1);
+	bool Server_AddUnit_Validate(AEWUnitState* Unit, int32 Index);
+
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Unit Management")
+	void Server_RemoveUnit(int32 Index);
+	bool Server_RemoveUnit_Validate(int32 Index);
+
+	UFUNCTION(BlueprintCallable, Server, Reliable, Category = "Unit Management")
+	void Server_SwapUnits(int32 IndexA, int32 IndexB);
+	bool Server_SwapUnits_Validate(int32 IndexA, int32 IndexB);
+
+	// 客户端请求函数（便于使用）
 	UFUNCTION(BlueprintCallable, Category = "Unit Management")
-	UEWUnitManager* GetUnitManager() const { return UnitManager; }
-
-	// 行动值相关
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	float GetActionPoint() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Attributes")
-	float GetMaxActionPoint() const;
-
-	// 单位管理
-	UFUNCTION(BlueprintCallable, Category = "Unit Management")
-	void AddOwnedUnit(UEWUnitState* UnitState);
+	void RequestAddUnit(AEWUnitState* Unit, int32 Index = -1);
 
 	UFUNCTION(BlueprintCallable, Category = "Unit Management")
-	void RemoveOwnedUnit(UEWUnitState* UnitState);
+	void RequestRemoveUnit(int32 Index);
 
 	UFUNCTION(BlueprintCallable, Category = "Unit Management")
-	TArray<UEWUnitState*> GetOwnedUnits() const { return OwnedUnits; }
+	void RequestSwapUnits(int32 IndexA, int32 IndexB);
 
+	// ===================== 统一的单位操作接口 =====================
+	
+	// 智能添加单位（自动判断网络环境）
 	UFUNCTION(BlueprintCallable, Category = "Unit Management")
-	TArray<UEWUnitState*> GetActiveUnits() const { return ActiveUnits; }
+	void AddUnit(AEWUnitState* Unit, int32 Index = -1);
 
-	// 设置参战单位
+	// 智能移除单位（自动判断网络环境）
 	UFUNCTION(BlueprintCallable, Category = "Unit Management")
-	bool SetActiveUnit(int32 SlotIndex, UEWUnitState* UnitState);
+	void RemoveUnit(int32 Index);
 
+	// 智能交换单位（自动判断网络环境）
 	UFUNCTION(BlueprintCallable, Category = "Unit Management")
-	UEWUnitState* GetActiveUnitAtSlot(int32 SlotIndex) const;
+	void SwapUnits(int32 IndexA, int32 IndexB);
 
-	// 召唤单位
-	UFUNCTION(BlueprintCallable, Category = "Unit Management")
-	class AEWUnitBase* SummonUnit(int32 SlotIndex, const FVector& Location = FVector::ZeroVector, const FRotator& Rotation = FRotator::ZeroRotator);
+	FORCEINLINE int32 GetTotalUnitCount() const { return TotalUnitCount; }
+	FORCEINLINE int32 GetStartingUnitCount() const { return StartingUnitCount; }
 
-	// 收回单位
-	UFUNCTION(BlueprintCallable, Category = "Unit Management")
-	void RecallUnit(int32 SlotIndex);
+	// 列表大小管理
+	void SetUnitList(const TArray<AEWUnitState*>& NewUnitList);
 
-	// 收回所有单位
-	UFUNCTION(BlueprintCallable, Category = "Unit Management")
-	void RecallAllUnits();
+	// 广播事件
+	FOnUnitListChanged OnUnitListChanged;
 
-	// 经验值和等级
-	UFUNCTION(BlueprintCallable, Category = "Progression")
-	void AddExperience(float Amount);
-
-	UFUNCTION(BlueprintCallable, Category = "Progression")
-	float GetExperience() const { return Experience; }
-
-	UFUNCTION(BlueprintCallable, Category = "Progression")
-	int32 GetLevel() const { return Level; }
-
-	// 检查是否可以暂停时间
-	UFUNCTION(BlueprintCallable, Category = "Time Control")
-	bool CanPauseTime() const;
 
 protected:
+	// 能力系统组件
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
+	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+
+	// 基础属性集
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
+	TObjectPtr<UEWBaseAttributeSet> BaseAttributeSet;
+
 	// 玩家专属属性集
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
 	TObjectPtr<UEWPlayerAttributeSet> PlayerAttributeSet;
 
-	// 单位管理器
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Unit Management")
-	TObjectPtr<UEWUnitManager> UnitManager;
+	// 统一的单位列表（网络复制）
+	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Unit Management")
+	TArray<AEWUnitState*> UnitList;
 
-	// 拥有的单位列表
-	UPROPERTY(BlueprintReadOnly, Category = "Unit Management")
-	TArray<UEWUnitState*> OwnedUnits;
+	// 总单位数量（网络复制）
+	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Unit Management")
+	int32 TotalUnitCount = 0;
 
-	// 当前参战的单位列表（对应战斗槽位）
-	UPROPERTY(BlueprintReadOnly, Category = "Unit Management")
-	TArray<UEWUnitState*> ActiveUnits;
+	// 首发单位数量（网络复制）
+	UPROPERTY(BlueprintReadOnly, Replicated, Category = "Unit Management")
+	int32 StartingUnitCount = 0;
 
-	// 经验值和等级
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Progression")
-	float Experience = 0.0f;
-
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Progression")
-	int32 Level = 1;
-
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Progression")
-	float ExperiencePerLevel = 100.0f;
-
-	// 时间暂停相关
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Time Control")
-	float PauseTimeCost = 20.0f;
-
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Time Control")
-	float PauseTimeCooldown = 5.0f;
-
-	UPROPERTY()
-	float LastPauseTime = 0.0f;
-
-	// 重写Character生成
-	virtual AActor* SpawnCharacter(UWorld* World, const FVector& Location = FVector::ZeroVector, const FRotator& Rotation = FRotator::ZeroRotator) override;
-
-	// 重写同步方法
-	virtual void SyncStateToCharacter() override;
-	virtual void SyncStateFromCharacter() override;
 
 private:
-	// 计算等级
-	void UpdateLevel();
+	// ===================== 等级经验数据 =====================
+	
+	// 等级
+	UPROPERTY(VisibleAnywhere, ReplicatedUsing=OnRep_Level, Category = "Level System")
+	int32 Level = 1;
 
-	// 单位死亡回调
+	// 经验
+	UPROPERTY(VisibleAnywhere, ReplicatedUsing=OnRep_Experience, Category = "Level System")
+	int32 Experience = 0;
+
+	// 网络复制回调
 	UFUNCTION()
-	void OnUnitDeath(UEWBaseState* DeadUnit);
+	void OnRep_Level(int32 OldLevel);
+
+	UFUNCTION()
+	void OnRep_Experience(int32 OldExperience);
+
+	// 内部实现函数（直接操作，不走网络）
+	void AddUnitInternal(AEWUnitState* Unit, int32 Index = -1);
+	void RemoveUnitInternal(int32 Index);
+	void SwapUnitsInternal(int32 IndexA, int32 IndexB);
+
+
 };

@@ -2,265 +2,357 @@
 
 #include "GameState/EWPlayerState.h"
 #include "GameState/EWUnitState.h"
+#include "AbilitySystem/AttributeSets/EWBaseAttributeSet.h"
 #include "AbilitySystem/AttributeSets/EWPlayerAttributeSet.h"
-#include "Character/EWCharacterBase.h"
-#include "Character/EWUnitBase.h"
-#include "Player/EWUnitManager.h"
-#include "Core/EWGameplayTags.h"
-#include "Engine/World.h"
-#include "TimerManager.h"
+#include "AbilitySystemComponent.h"
+#include "Net/UnrealNetwork.h"
 
-UEWPlayerState::UEWPlayerState()
+AEWPlayerState::AEWPlayerState()
 {
-	// 创建玩家属性集
-	PlayerAttributeSet = CreateDefaultSubobject<UEWPlayerAttributeSet>(TEXT("PlayerAttributeSet"));
+	SetNetUpdateFrequency(100.f);
+
+	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>("AbilitySystemComponent");
+	AbilitySystemComponent->SetIsReplicated(true);
+	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
+
+	// 初始化单位列表大小 - 延迟到BeginPlay进行，避免构造函数阻塞
+	BaseAttributeSet = CreateDefaultSubobject<UEWBaseAttributeSet>("BaseAttributeSet");
+	PlayerAttributeSet = CreateDefaultSubobject<UEWPlayerAttributeSet>("PlayerAttributeSet");
+	UnitList.SetNum(12); // 默认12个单位槽位
+}
+
+
+void AEWPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	// 等级经验复制
+	DOREPLIFETIME(AEWPlayerState, Level);
+	DOREPLIFETIME(AEWPlayerState, Experience);
+
+	// 单位管理复制
+	DOREPLIFETIME(AEWPlayerState, UnitList);
+	DOREPLIFETIME(AEWPlayerState, TotalUnitCount);
+	DOREPLIFETIME(AEWPlayerState, StartingUnitCount);
+}
+
+UAbilitySystemComponent* AEWPlayerState::GetAbilitySystemComponent() const
+{
+	return AbilitySystemComponent;
+}
+
+// ===================== 等级经验接口实现 =====================
+
+int32 AEWPlayerState::GetLevel_Implementation() const
+{
+	return Level;
+}
+
+void AEWPlayerState::SetLevel_Implementation(int32 InLevel)
+{
+	Level = InLevel;
+	OnLevelChangedDelegate.Broadcast(Level, true);
+}
+
+void AEWPlayerState::AddToLevel_Implementation(int32 InLevel)
+{
+	SetLevel_Implementation(Level + InLevel);
+}
+
+int32 AEWPlayerState::GetExperience_Implementation() const
+{
+	return Experience;
+}
+
+void AEWPlayerState::SetExperience_Implementation(int32 InExperience)
+{
+	Experience = InExperience;
+	OnExperienceChangedDelegate.Broadcast(Experience);
+}
+
+void AEWPlayerState::AddToExperience_Implementation(int32 InExperience)
+{
+	SetExperience_Implementation(Experience + InExperience);
+}
+
+void AEWPlayerState::OnRep_Level(int32 OldLevel)
+{
+	OnLevelChangedDelegate.Broadcast(Level, true);
+}
+
+void AEWPlayerState::OnRep_Experience(int32 OldExperience)
+{
+	OnExperienceChangedDelegate.Broadcast(Experience);
+}
+
+void AEWPlayerState::SetUnitList(const TArray<AEWUnitState*>& NewUnitList)
+{
+	UnitList = NewUnitList;
 	
-	// 创建单位管理器
-	UnitManager = CreateDefaultSubobject<UEWUnitManager>(TEXT("UnitManager"));
-
-	// 设置默认Character类为玩家角色
-	CharacterClass = AEWCharacterBase::StaticClass();
-
-	// 初始化参战单位槽位（默认4个槽位）
-	ActiveUnits.SetNum(4);
+	// 确保列表大小符合设定
+	UnitList.SetNum(TotalUnitCount);
+	
+	// 广播单位列表变化事件
+	OnUnitListChanged.Broadcast(UnitList, EUnitListOperationType::SetList, -1);
 }
 
-void UEWPlayerState::InitializeState()
+
+TArray<AEWUnitState*> AEWPlayerState::GetStartingUnits() const
 {
-	Super::InitializeState();
-
-	// 初始化单位管理器
-	if (UnitManager)
+	// 获取首发单位列表
+	TArray<AEWUnitState*> StartingUnits;
+	
+	for (int32 i = 0; i < FMath::Min(StartingUnitCount, UnitList.Num()); ++i)
 	{
-		UnitManager->Initialize(12, 4); // 12个总槽位，4个战斗槽位
+		StartingUnits.Add(UnitList[i]);
 	}
-
-	// 初始化等级
-	UpdateLevel();
+	
+	return StartingUnits;
 }
 
-float UEWPlayerState::GetActionPoint() const
+TArray<AEWUnitState*> AEWPlayerState::GetBenchUnits() const
 {
-	if (PlayerAttributeSet)
+	// 获取替补单位列表
+	TArray<AEWUnitState*> BenchUnits;
+	
+	for (int32 i = StartingUnitCount; i < UnitList.Num(); ++i)
 	{
-		return PlayerAttributeSet->GetActionPoint();
+		BenchUnits.Add(UnitList[i]);
 	}
-	return 0.0f;
+	
+	return BenchUnits;
 }
 
-float UEWPlayerState::GetMaxActionPoint() const
+// ===================== 只读访问函数 =====================
+
+AEWUnitState* AEWPlayerState::GetUnitAtIndex(int32 Index) const
 {
-	if (PlayerAttributeSet)
+	if (Index >= 0 && Index < UnitList.Num())
 	{
-		return PlayerAttributeSet->GetMaxActionPoint();
-	}
-	return 0.0f;
-}
-
-void UEWPlayerState::AddOwnedUnit(UEWUnitState* UnitState)
-{
-	if (UnitState && !OwnedUnits.Contains(UnitState))
-	{
-		OwnedUnits.Add(UnitState);
-		
-		// 绑定单位死亡事件
-		UnitState->OnCharacterDestroyed.AddDynamic(this, &UEWPlayerState::OnUnitDeath);
-	}
-}
-
-void UEWPlayerState::RemoveOwnedUnit(UEWUnitState* UnitState)
-{
-	if (UnitState)
-	{
-		OwnedUnits.Remove(UnitState);
-		
-		// 从参战列表中移除
-		for (int32 i = 0; i < ActiveUnits.Num(); ++i)
-		{
-			if (ActiveUnits[i] == UnitState)
-			{
-				ActiveUnits[i] = nullptr;
-			}
-		}
-		
-		// 解绑事件
-		UnitState->OnCharacterDestroyed.RemoveDynamic(this, &UEWPlayerState::OnUnitDeath);
-	}
-}
-
-bool UEWPlayerState::SetActiveUnit(int32 SlotIndex, UEWUnitState* UnitState)
-{
-	if (SlotIndex < 0 || SlotIndex >= ActiveUnits.Num())
-	{
-		return false;
-	}
-
-	// 检查单位是否属于玩家
-	if (UnitState && !OwnedUnits.Contains(UnitState))
-	{
-		return false;
-	}
-
-	ActiveUnits[SlotIndex] = UnitState;
-	return true;
-}
-
-UEWUnitState* UEWPlayerState::GetActiveUnitAtSlot(int32 SlotIndex) const
-{
-	if (SlotIndex >= 0 && SlotIndex < ActiveUnits.Num())
-	{
-		return ActiveUnits[SlotIndex];
+		return UnitList[Index];
 	}
 	return nullptr;
 }
 
-AEWUnitBase* UEWPlayerState::SummonUnit(int32 SlotIndex, const FVector& Location, const FRotator& Rotation)
+// ===================== 客户端请求包装器 =====================
+
+void AEWPlayerState::RequestAddUnit(AEWUnitState* Unit, int32 Index)
 {
-	UEWUnitState* UnitState = GetActiveUnitAtSlot(SlotIndex);
-	if (!UnitState || !UnitState->IsAlive())
+	if (HasAuthority())
 	{
-		return nullptr;
+		// 在服务器上直接执行
+		Server_AddUnit(Unit, Index);
 	}
-
-	// 检查是否有足够的行动点或魔法值
-	// 这里可以添加召唤消耗的逻辑
-
-	UWorld* World = GetWorld();
-	if (!World)
+	else
 	{
-		return nullptr;
-	}
-
-	// 通过UnitState生成Character
-	AActor* SpawnedActor = UnitState->SpawnCharacter(World, Location, Rotation);
-	AEWUnitBase* SummonedUnit = Cast<AEWUnitBase>(SpawnedActor);
-
-	if (SummonedUnit)
-	{
-		UE_LOG(LogTemp, Log, TEXT("UEWPlayerState::SummonUnit - Successfully summoned unit at slot %d"), SlotIndex);
-	}
-
-	return SummonedUnit;
-}
-
-void UEWPlayerState::RecallUnit(int32 SlotIndex)
-{
-	UEWUnitState* UnitState = GetActiveUnitAtSlot(SlotIndex);
-	if (UnitState)
-	{
-		UnitState->DestroyCharacter();
-		UE_LOG(LogTemp, Log, TEXT("UEWPlayerState::RecallUnit - Recalled unit at slot %d"), SlotIndex);
+		// 在客户端上发送RPC请求
+		Server_AddUnit(Unit, Index);
 	}
 }
 
-void UEWPlayerState::RecallAllUnits()
+void AEWPlayerState::RequestRemoveUnit(int32 Index)
 {
-	for (int32 i = 0; i < ActiveUnits.Num(); ++i)
+	if (HasAuthority())
 	{
-		RecallUnit(i);
+		// 在服务器上直接执行
+		Server_RemoveUnit(Index);
+	}
+	else
+	{
+		// 在客户端上发送RPC请求
+		Server_RemoveUnit(Index);
 	}
 }
 
-void UEWPlayerState::AddExperience(float Amount)
+void AEWPlayerState::RequestSwapUnits(int32 IndexA, int32 IndexB)
 {
-	if (Amount <= 0.0f)
+	if (HasAuthority())
+	{
+		// 在服务器上直接执行
+		Server_SwapUnits(IndexA, IndexB);
+	}
+	else
+	{
+		// 在客户端上发送RPC请求
+		Server_SwapUnits(IndexA, IndexB);
+	}
+}
+
+// ===================== 服务器端RPC函数 =====================
+
+void AEWPlayerState::Server_AddUnit_Implementation(AEWUnitState* Unit, int32 Index)
+{
+	// 服务器端执行内部实现
+	AddUnitInternal(Unit, Index);
+}
+
+bool AEWPlayerState::Server_AddUnit_Validate(AEWUnitState* Unit, int32 Index)
+{
+	// 基本验证：单位不为空，索引在合理范围内
+	return Unit != nullptr && Index >= -1 && Index < UnitList.Num();
+}
+
+void AEWPlayerState::Server_RemoveUnit_Implementation(int32 Index)
+{
+	// 服务器端执行内部实现
+	RemoveUnitInternal(Index);
+}
+
+bool AEWPlayerState::Server_RemoveUnit_Validate(int32 Index)
+{
+	// 验证索引有效性
+	return Index >= 0 && Index < UnitList.Num();
+}
+
+void AEWPlayerState::Server_SwapUnits_Implementation(int32 IndexA, int32 IndexB)
+{
+	// 服务器端执行内部实现
+	SwapUnitsInternal(IndexA, IndexB);
+}
+
+bool AEWPlayerState::Server_SwapUnits_Validate(int32 IndexA, int32 IndexB)
+{
+	// 验证两个索引都有效
+	return IndexA >= 0 && IndexA < UnitList.Num() && 
+	       IndexB >= 0 && IndexB < UnitList.Num();
+}
+
+// ===================== 统一的智能单位操作接口 =====================
+
+void AEWPlayerState::AddUnit(AEWUnitState* Unit, int32 Index)
+{
+	// 自动判断网络环境
+	if (GetWorld() && GetWorld()->GetNetMode() != NM_Standalone)
+	{
+		// 多人游戏环境，使用网络安全版本
+		if (HasAuthority())
+		{
+			// 服务器端直接执行
+			Server_AddUnit(Unit, Index);
+		}
+		else
+		{
+			// 客户端发送RPC请求
+			Server_AddUnit(Unit, Index);
+		}
+	}
+	else
+	{
+		// 单机游戏，直接操作
+		AddUnitInternal(Unit, Index);
+	}
+}
+
+void AEWPlayerState::RemoveUnit(int32 Index)
+{
+	// 自动判断网络环境
+	if (GetWorld() && GetWorld()->GetNetMode() != NM_Standalone)
+	{
+		// 多人游戏环境，使用网络安全版本
+		if (HasAuthority())
+		{
+			// 服务器端直接执行
+			Server_RemoveUnit(Index);
+		}
+		else
+		{
+			// 客户端发送RPC请求
+			Server_RemoveUnit(Index);
+		}
+	}
+	else
+	{
+		// 单机游戏，直接操作
+		RemoveUnitInternal(Index);
+	}
+}
+
+void AEWPlayerState::SwapUnits(int32 IndexA, int32 IndexB)
+{
+	// 自动判断网络环境
+	if (GetWorld() && GetWorld()->GetNetMode() != NM_Standalone)
+	{
+		// 多人游戏环境，使用网络安全版本
+		if (HasAuthority())
+		{
+			// 服务器端直接执行
+			Server_SwapUnits(IndexA, IndexB);
+		}
+		else
+		{
+			// 客户端发送RPC请求
+			Server_SwapUnits(IndexA, IndexB);
+		}
+	}
+	else
+	{
+		// 单机游戏，直接操作
+		SwapUnitsInternal(IndexA, IndexB);
+	}
+}
+
+// ===================== 内部实现函数（直接操作） =====================
+
+void AEWPlayerState::AddUnitInternal(AEWUnitState* Unit, int32 Index)
+{
+	if (!Unit)
 	{
 		return;
 	}
-
-	Experience += Amount;
-	UpdateLevel();
-}
-
-bool UEWPlayerState::CanPauseTime() const
-{
-	// 检查行动值是否足够
-	if (GetActionPoint() < PauseTimeCost)
-	{
-		return false;
-	}
-
-	// 检查冷却时间
-	UWorld* World = GetWorld();
-	if (World)
-	{
-		float CurrentTime = World->GetTimeSeconds();
-		if (CurrentTime - LastPauseTime < PauseTimeCooldown)
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
-
-AActor* UEWPlayerState::SpawnCharacter(UWorld* World, const FVector& Location, const FRotator& Rotation)
-{
-	AActor* Character = Super::SpawnCharacter(World, Location, Rotation);
 	
-	if (AEWCharacterBase* PlayerCharacter = Cast<AEWCharacterBase>(Character))
+	// 如果没有指定索引，找到第一个空位
+	if (Index == -1)
 	{
-		// 设置玩家状态的引用
-		// 这里可以添加玩家角色的特殊初始化逻辑
-	}
-
-	return Character;
-}
-
-void UEWPlayerState::SyncStateToCharacter()
-{
-	Super::SyncStateToCharacter();
-
-	if (AEWCharacterBase* PlayerCharacter = Cast<AEWCharacterBase>(GetCharacterActor()))
-	{
-		// 同步玩家特有的状态
-		// 例如：单位管理器的引用等
-		if (UEWUnitManager* CharacterUnitManager = PlayerCharacter->GetUnitManager())
+		for (int32 i = 0; i < UnitList.Num(); ++i)
 		{
-			// 同步单位管理器状态
+			if (!UnitList[i])
+			{
+				Index = i;
+				break;
+			}
 		}
 	}
-}
-
-void UEWPlayerState::SyncStateFromCharacter()
-{
-	Super::SyncStateFromCharacter();
-
-	if (AEWCharacterBase* PlayerCharacter = Cast<AEWCharacterBase>(GetCharacterActor()))
-	{
-		// 从玩家角色同步状态
-		// 例如：最后暂停时间等
-		LastPauseTime = 0.0f; // 重置暂停时间
-	}
-}
-
-void UEWPlayerState::UpdateLevel()
-{
-	if (ExperiencePerLevel <= 0.0f)
+	
+	// 检查索引有效性
+	if (Index < 0 || Index >= UnitList.Num())
 	{
 		return;
 	}
-
-	int32 NewLevel = FMath::FloorToInt(Experience / ExperiencePerLevel) + 1;
 	
-	if (NewLevel != Level)
-	{
-		int32 OldLevel = Level;
-		Level = NewLevel;
-		
-		UE_LOG(LogTemp, Log, TEXT("UEWPlayerState::UpdateLevel - Level up! %d -> %d"), OldLevel, Level);
-		
-		// 这里可以添加升级奖励逻辑
-	}
+	UnitList[Index] = Unit;
+	
+	// 广播添加单位事件
+	OnUnitListChanged.Broadcast(UnitList, EUnitListOperationType::AddUnit, Index);
 }
 
-void UEWPlayerState::OnUnitDeath(UEWBaseState* State)
+void AEWPlayerState::RemoveUnitInternal(int32 Index)
 {
-	if (State)
+	// 检查索引有效性
+	if (Index < 0 || Index >= UnitList.Num())
 	{
-		UE_LOG(LogTemp, Log, TEXT("UEWPlayerState::OnUnitDeath - Unit died"));
-		
-		// 这里可以添加单位死亡的处理逻辑
-		// 例如：经验奖励、复活倒计时等
+		return;
 	}
+	
+	UnitList[Index] = nullptr;
+	
+	// 广播移除单位事件
+	OnUnitListChanged.Broadcast(UnitList, EUnitListOperationType::RemoveUnit, Index);
+}
+
+void AEWPlayerState::SwapUnitsInternal(int32 IndexA, int32 IndexB)
+{
+	// 检查索引有效性
+	if (IndexA < 0 || IndexA >= UnitList.Num() || IndexB < 0 || IndexB >= UnitList.Num())
+	{
+		return;
+	}
+	
+	// 交换单位
+	AEWUnitState* TempUnit = UnitList[IndexA];
+	UnitList[IndexA] = UnitList[IndexB];
+	UnitList[IndexB] = TempUnit;
+	
+	// 广播交换单位事件（使用较小的索引作为操作索引）
+	int32 OperationIndex = FMath::Min(IndexA, IndexB);
+	OnUnitListChanged.Broadcast(UnitList, EUnitListOperationType::SwapUnit, OperationIndex);
 }
