@@ -139,6 +139,9 @@ void AEWPlayerController::Look(const FInputActionValue& Value)
 		}
 
 		// 检查是否在锁定模式
+		AddYawInput(LookAxisVector.X);
+		AddPitchInput(LookAxisVector.Y);
+		/*
 		AEWCharacterBase* EWCharacter = GetControlledCharacter();
 		if (EWCharacter && EWCharacter->GetLockedTarget())
 		{
@@ -151,7 +154,7 @@ void AEWPlayerController::Look(const FInputActionValue& Value)
 			// 普通视角控制
 			AddYawInput(LookAxisVector.X);
 			AddPitchInput(LookAxisVector.Y);
-		}
+		}*/
 	}
 }
 
@@ -164,28 +167,28 @@ void AEWPlayerController::ToggleLock(const FInputActionValue& Value)
 	}
 
 	// 如果已经锁定了目标，则解锁
-	if (EWCharacter->GetLockedTarget())
-	{
-		EWCharacter->UnlockTarget();
-		return;
-	}
+	// if (EWCharacter->GetLockedTarget())
+	// {
+	// 	EWCharacter->UnlockTarget();
+	// 	return;
+	// }
 
-	// 寻找最近的可锁定目标
-	AEWUnitBase* Target = FindNearestLockableTarget();
-	if (Target)
-	{
-		EWCharacter->LockTarget(Target);
-	}
+	// // 寻找最近的可锁定目标
+	// AEWUnitBase* Target = FindNearestLockableTarget();
+	// if (Target)
+	// {
+	// 	EWCharacter->LockTarget(Target);
+	// }
 }
 
 void AEWPlayerController::PauseTime(const FInputActionValue& Value)
 {
 	AEWCharacterBase* EWCharacter = GetControlledCharacter();
-	if (EWCharacter && EWCharacter->CanPauseTime())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Pausing time for character: %s"), *EWCharacter->GetName());
-		EWCharacter->PauseTime();
-	}
+// 	if (EWCharacter && EWCharacter->CanPauseTime())
+// 	{
+// 		UE_LOG(LogTemp, Warning, TEXT("Pausing time for character: %s"), *EWCharacter->GetName());
+// 		EWCharacter->PauseTime();
+// 	}
 }
 
 void AEWPlayerController::ResumeTime(const FInputActionValue& Value)
@@ -194,7 +197,7 @@ void AEWPlayerController::ResumeTime(const FInputActionValue& Value)
 	if (EWCharacter)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Resuming time for character: %s"), *EWCharacter->GetName());
-		EWCharacter->ResumeTime();
+		// EWCharacter->ResumeTime();
 	}
 }
 
@@ -262,10 +265,10 @@ AEWUnitBase* AEWPlayerController::FindNearestLockableTarget()
 	for (TActorIterator<AEWUnitBase> ActorItr(World); ActorItr; ++ActorItr)
 	{
 		AEWUnitBase* Unit = *ActorItr;
-		if (!Unit || Unit == static_cast<AActor*>(EWCharacter) || !Unit->IsAlive())
-		{
-			continue;
-		}
+		// if (!Unit || Unit == static_cast<AActor*>(EWCharacter) || !Unit->IsAlive_Implementation())//TODO:判断接口是否存在
+		// {
+		// 	continue;
+		// }
 
 		float Distance = FVector::Dist(CharacterLocation, Unit->GetActorLocation());
 		if (Distance < NearestDistance)

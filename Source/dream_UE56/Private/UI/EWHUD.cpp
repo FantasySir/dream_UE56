@@ -66,8 +66,9 @@ UEWUnitManagementWidgetController* AEWHUD::GetUnitManagementWidgetController(con
 		// 设置单位管理器
 		if (AEWCharacterBase* Character = Cast<AEWCharacterBase>(WCParams.PlayerController->GetPawn()))
 		{
-			UEWUnitManager* UnitManager = Character->GetUnitManager();
-			UnitManagementWidgetController->SetUnitManager(UnitManager);
+			//TODO
+			// UEWUnitManager* UnitManager = Character->GetUnitManager();
+			//UnitManagementWidgetController->SetUnitManager(UnitManager);
 		}
 	}
 	return UnitManagementWidgetController;
@@ -88,16 +89,17 @@ void AEWHUD::ShowAttributeMenu()
 			
 			if (AEWCharacterBase* Character = Cast<AEWCharacterBase>(PC->GetPawn()))
 			{
-				UAbilitySystemComponent* ASC = Character->GetAbilitySystemComponent();
-				UEWBaseAttributeSet* BaseAS = Character->GetBaseAttributeSet();
-				UEWPlayerAttributeSet* PlayerAS = Character->GetPlayerAttributeSet();
-				UEWCombatAttributeSet* CombatAS = Character->GetCombatAttributeSet();
+				//TODO
+				//UAbilitySystemComponent* ASC = Character->GetAbilitySystemComponent();
+				//UEWBaseAttributeSet* BaseAS = Character->GetBaseAttributeSet();
+				// UEWPlayerAttributeSet* PlayerAS = Character->GetPlayerAttributeSet();
+				// UEWCombatAttributeSet* CombatAS = Character->GetCombatAttributeSet();
 				
-				const FWidgetControllerParams WCParams(PC, PS, ASC, BaseAS, PlayerAS, CombatAS);
-				UEWAttributeMenuWidgetController* WidgetController = GetAttributeMenuWidgetController(WCParams);
+				//const FWidgetControllerParams WCParams(PC, PS, ASC, BaseAS, PlayerAS, CombatAS);
+				//UEWAttributeMenuWidgetController* WidgetController = GetAttributeMenuWidgetController(WCParams);
 				
-				AttributeMenuWidget->SetWidgetController(WidgetController);
-				WidgetController->BroadcastInitialValues();
+				//AttributeMenuWidget->SetWidgetController(WidgetController);
+				//WidgetController->BroadcastInitialValues();
 			}
 		}
 	}
@@ -142,17 +144,18 @@ void AEWHUD::ShowUnitManagement()
 			APlayerState* PS = PC->GetPlayerState<APlayerState>();
 			
 			if (AEWCharacterBase* Character = Cast<AEWCharacterBase>(PC->GetPawn()))
-			{
-				UAbilitySystemComponent* ASC = Character->GetAbilitySystemComponent();
-				UEWBaseAttributeSet* BaseAS = Character->GetBaseAttributeSet();
-				UEWPlayerAttributeSet* PlayerAS = Character->GetPlayerAttributeSet();
-				UEWCombatAttributeSet* CombatAS = Character->GetCombatAttributeSet();
+			{	
+				//TODO:
+				//UAbilitySystemComponent* ASC = Character->GetAbilitySystemComponent();
+				//UEWBaseAttributeSet* BaseAS = Character->GetBaseAttributeSet();
+				// UEWPlayerAttributeSet* PlayerAS = Character->GetPlayerAttributeSet();
+				// UEWCombatAttributeSet* CombatAS = Character->GetCombatAttributeSet();
 				
-				const FWidgetControllerParams WCParams(PC, PS, ASC, BaseAS, PlayerAS, CombatAS);
-				UEWUnitManagementWidgetController* WidgetController = GetUnitManagementWidgetController(WCParams);
+				//const FWidgetControllerParams WCParams(PC, PS, ASC, BaseAS, PlayerAS, CombatAS);
+				//UEWUnitManagementWidgetController* WidgetController = GetUnitManagementWidgetController(WCParams);
 				
-				UnitManagementWidget->SetWidgetController(WidgetController);
-				WidgetController->BroadcastInitialValues();
+				//UnitManagementWidget->SetWidgetController(WidgetController);
+				//WidgetController->BroadcastInitialValues();
 			}
 		}
 	}

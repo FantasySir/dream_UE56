@@ -4,19 +4,23 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Character/EWCharacterBase.h"
 #include "AbilitySystemInterface.h"
 #include "GameplayTagContainer.h"
 #include "Engine/DamageEvents.h"
+#include "Interfaces/EWCombatInterface.h"
+#include "Perception/AIPerceptionTypes.h"
 #include "EWUnitBase.generated.h"
 
 class UAbilitySystemComponent;
 class UEWBaseAttributeSet;
 class UEWCombatAttributeSet;
 class UEWUnitAttributeSet;
-class UBehaviorTreeComponent;
-class UBlackboardComponent;
 class UBehaviorTree;
 class AEWUnitState;
+class AEWUnitAIController;
+class UAIPerceptionComponent;
+struct FAIStimulus;
 
 // 单位阵营枚举
 UENUM(BlueprintType)
@@ -50,13 +54,12 @@ enum class EUnitClass : uint8
 	Priest			UMETA(DisplayName = "Priest")
 };
 
-// 单位死亡委托
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUnitDeath, AEWUnitBase*, DeadUnit);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUnitHealthChanged, AEWUnitBase*, Unit, float, NewHealth);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnUnitDamaged, AEWUnitBase*, Unit, float, DamageAmount, AEWUnitBase*, DamageSource);
+
+// 感知委托事件
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnEnemyPerceived, AEWUnitBase*, PerceivedEnemy, bool, bSuccessfullyPerceived);
 
 UCLASS()
-class DREAM_UE56_API AEWUnitBase : public ACharacter, public IAbilitySystemInterface
+class DREAM_UE56_API AEWUnitBase : public AEWCharacterBase
 {
 	GENERATED_BODY()
 
@@ -64,183 +67,38 @@ public:
 	// Sets default values for this character's properties
 	AEWUnitBase();
 
-	// IAbilitySystemInterface
-	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	virtual void PossessedBy(AController* NewController) override;
 
-	// 获取属性集
-	// 获取属性集
-	UFUNCTION(BlueprintCallable, Category = "Ability System")
-	class UEWBaseAttributeSet* GetBaseAttributeSet() const { return BaseAttributeSet; }
+	UPROPERTY(BlueprintReadWrite, Category = "Combat")
+	TObjectPtr<AActor> CombatTarget;
 
-	UFUNCTION(BlueprintCallable, Category = "Ability System")
-	class UEWCombatAttributeSet* GetCombatAttributeSet() const { return CombatAttributeSet; }
+	UEWUnitAttributeSet* GetUnitAttributeSet() const { return UnitAttributeSet; }
 
-	//百分比获取
-	UFUNCTION(BlueprintCallable, Category = "Health")
-	float GetHealthPercentage() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Mana")
-	float GetManaPercentage() const;
-
-	// 是否已死亡
-	UFUNCTION(BlueprintCallable, Category = "Health")
-	bool IsAlive() const;
-
-
-	// 阵营相关
-	UFUNCTION(BlueprintCallable, Category = "Faction")
-	EUnitFaction GetFaction() const { return Faction; }
-
-	UFUNCTION(BlueprintCallable, Category = "Faction")
-	void SetFaction(EUnitFaction NewFaction) { Faction = NewFaction; }
-
-	UFUNCTION(BlueprintCallable, Category = "Faction")
-	bool IsHostileTo(AEWUnitBase* OtherUnit) const;
-
-	UFUNCTION(BlueprintCallable, Category = "Faction")
-	bool IsFriendlyTo(AEWUnitBase* OtherUnit) const;
-
-	// 状态相关
-	UFUNCTION(BlueprintCallable, Category = "State")
-	EUnitState GetCurrentState() const { return CurrentState; }
-
-	UFUNCTION(BlueprintCallable, Category = "State")
-	void SetCurrentState(EUnitState NewState);
-
-	// 职业相关
-	UFUNCTION(BlueprintCallable, Category = "Class")
-	EUnitClass GetPrimaryClass() const { return PrimaryClass; }
-
-	UFUNCTION(BlueprintCallable, Category = "Class")
-	EUnitClass GetSecondaryClass() const { return SecondaryClass; }
-
-	UFUNCTION(BlueprintCallable, Category = "Class")
-	void SetPrimaryClass(EUnitClass NewClass) { PrimaryClass = NewClass; }
-
-	UFUNCTION(BlueprintCallable, Category = "Class")
-	void SetSecondaryClass(EUnitClass NewClass) { SecondaryClass = NewClass; }
-
-	// AI相关
+	// 获取AI Controller
 	UFUNCTION(BlueprintCallable, Category = "AI")
-	void StartAI();
+	class AEWUnitAIController* GetUnitAIController() const { return UnitAIController; }
+	// 感知相关
+	UFUNCTION(BlueprintCallable, Category = "Perception")
+	class UAIPerceptionComponent* GetPerceptionComponent() const { return PerceptionComponent; }
 
-	UFUNCTION(BlueprintCallable, Category = "AI")
-	void StopAI();
-
-	// 战斗相关
-	UFUNCTION(BlueprintCallable, Category = "Combat")
-	virtual float TakeDamage(float Damage, const struct FDamageEvent& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser) override;
-
-	UFUNCTION(BlueprintCallable, Category = "Combat")
-	void TakeDamageFromUnit(float DamageAmount, AEWUnitBase* DamageSource);
-
-	UFUNCTION(BlueprintCallable, Category = "Combat")
-	void AttackTarget(AEWUnitBase* Target);
-
-	UFUNCTION(BlueprintCallable, Category = "Combat")
-	bool CanAttack(AEWUnitBase* Target) const;
-
-	// 技能相关
-	UFUNCTION(BlueprintCallable, Category = "Skills")
-	bool CanCastSkill() const;
-
-	UFUNCTION(BlueprintCallable, Category = "Skills")
-	void CastRandomSkill();
-
-	// 委托事件
-	UPROPERTY(BlueprintAssignable, Category = "Events")
-	FOnUnitDeath OnDeath;
-
-	UPROPERTY(BlueprintAssignable, Category = "Events")
-	FOnUnitHealthChanged OnHealthChanged;
-
-	UPROPERTY(BlueprintAssignable, Category = "Events")
-	FOnUnitDamaged OnDamaged;
+	UFUNCTION()
+	void OnTargetPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void InitAbilityActorInfo() override;
+	TObjectPtr<UEWUnitAttributeSet> UnitAttributeSet;
 
-	// APawn interface - 当被Controller占有时调用
-	virtual void PossessedBy(AController* NewController) override;
-
-	// Called when the game ends or when destroyed
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-
-	// 能力系统组件
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
-	class UAbilitySystemComponent* AbilitySystemComponent;
-
-	// 属性集
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
-	class UEWBaseAttributeSet* BaseAttributeSet;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
-	class UEWCombatAttributeSet* CombatAttributeSet;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Ability System")
-	class UEWUnitAttributeSet* UnitAttributeSet;
-
-	// AI组件
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
-	class UBehaviorTreeComponent* BehaviorTreeComponent;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
-	class UBlackboardComponent* BlackboardComponent;
-
-	// 初始化能力系统Actor信息
-	virtual void InitAbilityActorInfo();
-
-	// 单位状态管理器 (数据层)
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Unit State")
-	class AEWUnitState* UnitState;
-
-	// 起始能力
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Ability System")
-	TArray<TSubclassOf<class UGameplayAbility>> StartupAbilities;
-
-	// 行为树资产
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "AI")
-	class UBehaviorTree* BehaviorTreeAsset;
-
-	// 黑板资产
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "AI")
-	class UBlackboardData* BlackboardAsset;
-
-	// 单位属性
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Unit Properties")
-	EUnitFaction Faction = EUnitFaction::Neutral;
-
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Unit Properties")
-	EUnitState CurrentState = EUnitState::Idle;
-
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Unit Properties")
-	EUnitClass PrimaryClass = EUnitClass::None;
-
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Unit Properties")
-	EUnitClass SecondaryClass = EUnitClass::None;
-
-	// 战斗相关属性
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Combat")
-	float AttackRange = 200.0f;
-
-	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category = "Combat")
-	float AttackCooldown = 1.5f;
-
+	// AI
 	UPROPERTY()
-	float LastAttackTime = 0.0f;
+	TObjectPtr<AEWUnitAIController> UnitAIController;
+	UPROPERTY(EditAnywhere, Category = "AI")
+	TObjectPtr<UBehaviorTree> BehaviorTreeAsset;
 
-	// 当单位死亡时调用
-	virtual void HandleDeath();
+	// 感知组件
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Perception")
+	TObjectPtr<UAIPerceptionComponent> PerceptionComponent;
 
-	// 处理属性变化
-	UFUNCTION()
-	virtual void OnHealthAttributeChanged(const FGameplayAttribute& Attribute, float NewValue, float OldValue);
-
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	void InitializePerceptionComponent();
 };

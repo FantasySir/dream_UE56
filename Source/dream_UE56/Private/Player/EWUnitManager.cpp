@@ -171,9 +171,11 @@ void UEWUnitManager::UpdateUnitStatus(int32 SlotIndex, float HealthPercentage, f
 void UEWUnitManager::UpdateUnitFromActor(int32 SlotIndex, AEWUnitBase* UnitActor)
 {
 	if (!IsValidSlotIndex(SlotIndex) || !UnitActor) return;
-	float HealthPct = UnitActor->GetHealthPercentage();
-	float ManaPct = UnitActor->GetManaPercentage();
-	UpdateUnitStatus(SlotIndex, HealthPct, ManaPct);
+	//TODO
+	// float HealthPct = UnitActor->GetHealthPercentage();
+	// float ManaPct = UnitActor->GetManaPercentage();
+	//UpdateUnitStatus(SlotIndex, HealthPct, ManaPct);
+	return;
 }
 
 bool UEWUnitManager::UnlockSlot(int32 SlotIndex)

@@ -61,29 +61,30 @@ void UEWGameplayAbility_TimePause::ActivateAbility(const FGameplayAbilitySpecHan
 		}
 	}
 
-	// 激活时间暂停
-	if (UEWTimeManager* TimeManager = Character->GetTimeManager())
+	// 激活时间暂停 TODO
+	// if (UEWTimeManager* TimeManager = Character->GetTimeManager())
+	if(true)
 	{
-		if (TimeManager->IsTimePaused())
-		{
-			// 如果时间已经暂停，则恢复时间
-			TimeManager->ResumeTime();
-		}
-		else
-		{
-			// 暂停时间
-			TimeManager->PauseTime(Character);
+		// if (TimeManager->IsTimePaused())
+		// {
+		// 	// 如果时间已经暂停，则恢复时间
+		// 	TimeManager->ResumeTime();
+		// }
+		// else
+		// {
+		// 	// 暂停时间
+		// 	TimeManager->PauseTime(Character);
 			
-			// 如果设置了自动恢复时间，启动计时器
-			if (PauseDuration > 0.0f)
-			{
-				UWorld* World = GetWorld();
-				if (World)
-				{
-					World->GetTimerManager().SetTimer(PauseTimerHandle, this, &UEWGameplayAbility_TimePause::OnPauseTimeExpired, PauseDuration, false);
-				}
-			}
-		}
+		// 	// 如果设置了自动恢复时间，启动计时器
+		// 	if (PauseDuration > 0.0f)
+		// 	{
+		// 		UWorld* World = GetWorld();
+		// 		if (World)
+		// 		{
+		// 			World->GetTimerManager().SetTimer(PauseTimerHandle, this, &UEWGameplayAbility_TimePause::OnPauseTimeExpired, PauseDuration, false);
+		// 		}
+		// 	}
+		// }
 	}
 
 	// 结束能力
@@ -120,7 +121,8 @@ bool UEWGameplayAbility_TimePause::CanActivateAbility(const FGameplayAbilitySpec
 		return false;
 	}
 
-	return Character->CanPauseTime();
+	// return Character->CanPauseTime(); TODO
+	return true;
 }
 
 void UEWGameplayAbility_TimePause::OnPauseTimeExpired()
@@ -131,9 +133,10 @@ void UEWGameplayAbility_TimePause::OnPauseTimeExpired()
 		AEWCharacterBase* Character = Cast<AEWCharacterBase>(ActorInfo->AvatarActor.Get());
 		if (Character)
 		{
-			if (UEWTimeManager* TimeManager = Character->GetTimeManager())
+			// if (UEWTimeManager* TimeManager = Character->GetTimeManager())
+			if(true)//TODO
 			{
-				TimeManager->ResumeTime();
+				//TimeManager->ResumeTime();
 			}
 		}
 	}
