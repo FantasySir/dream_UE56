@@ -4,7 +4,7 @@
 #include "AbilitySystem/AttributeSets/EWBaseAttributeSet.h"
 #include "AbilitySystem/AttributeSets/EWUnitAttributeSet.h"
 #include "AI/EWUnitAIController.h"
-#include "Gameplay/EWTimeManager.h"
+#include "AbilitySystem/EWAbilitySystemLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Abilities/GameplayAbility.h"
 #include "GameplayEffect.h"
@@ -38,6 +38,11 @@ AEWUnitBase::AEWUnitBase()
 	UnitAttributeSet = CreateDefaultSubobject<UEWUnitAttributeSet>("UnitAttributeSet");
 	// 初始化感知组件
 	InitializePerceptionComponent();
+	// 默认单位不免疫时间暂停
+	bImmuneTimePause = false;
+	bDead = false;
+	// 注册
+	TimeManagerRegistered();
 }
 
 void AEWUnitBase::PossessedBy(AController* NewController)

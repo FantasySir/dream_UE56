@@ -34,6 +34,9 @@ void AEWCharacter::PossessedBy(AController* NewController)
 	{
 		UnitManager->Initialize(12, 4); // 默认12个总槽位，4个战斗槽位
 	}
+
+	// 注册时间管理器
+	TimeManagerRegistered();
 }
 
 void AEWCharacter::OnRep_PlayerState()

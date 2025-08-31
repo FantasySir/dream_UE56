@@ -27,10 +27,17 @@ void UEWTimePauseImmuneComponent::BeginPlay()
 
 void UEWTimePauseImmuneComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	// 从免疫列表中移除
-	if (bIsTimePauseImmune)
+	// 从时间管理器中移除此Actor
+	AActor* Owner = GetOwner();
+	if (Owner)
 	{
-		SetTimePauseImmune(false);
+		if (UWorld* World = Owner->GetWorld())
+		{
+			if (UEWTimeManager* TimeManager = World->GetSubsystem<UEWTimeManager>())
+			{
+				TimeManager->UnregisterTimeAffectedActor(Owner);
+			}
+		}
 	}
 
 	Super::EndPlay(EndPlayReason);
@@ -60,13 +67,12 @@ void UEWTimePauseImmuneComponent::SetTimePauseImmune(bool bImmune)
 
 	if (bImmune)
 	{
-		// 注册为免疫Actor
-		TimeManager->RegisterTimeSensitiveActor(Owner);
-		// 这里可以添加额外的免疫逻辑
+		// 注册为时间影响Actor（TimeManager会根据免疫状态自动分类）
+		TimeManager->RegisterTimeAffectedActor(Owner);
 	}
 	else
 	{
-		// 从免疫列表移除
-		TimeManager->UnregisterTimeSensitiveActor(Owner);
+		// 从管理列表中移除
+		TimeManager->UnregisterTimeAffectedActor(Owner);
 	}
 }

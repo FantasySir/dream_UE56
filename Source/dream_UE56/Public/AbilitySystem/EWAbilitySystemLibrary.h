@@ -10,6 +10,8 @@
 
 class UAbilitySystemComponent;
 class UAttributeSet;
+class UEWTimeManager;
+class AEWCharacterBase;
 struct FGameplayEffectContextHandle;
 
 /**
@@ -27,5 +29,25 @@ public:
 	 */
     UFUNCTION(BlueprintCallable, Category="EWAbilitySystemLibrary|CharacterClassDefaults")
 	static void InitializeDefaultAttributes();
+
+	/*
+	 * Time Management
+	 */
+	
+	// 获取时间管理器
+	UFUNCTION(BlueprintCallable, Category = "EWAbilitySystemLibrary|TimeManagement")
+	static UEWTimeManager* GetTimeManager(const UObject* WorldContextObject);
+	
+	// 检查游戏时间是否被暂停
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "EWAbilitySystemLibrary|TimeManagement")
+	static bool IsGameTimePaused(const UObject* WorldContextObject);
+	
+	// 暂停游戏时间
+	UFUNCTION(BlueprintCallable, Category = "EWAbilitySystemLibrary|TimeManagement")
+	static void PauseGameTime(const UObject* WorldContextObject, AEWCharacterBase* Instigator);
+	
+	// 恢复游戏时间
+	UFUNCTION(BlueprintCallable, Category = "EWAbilitySystemLibrary|TimeManagement")
+	static void ResumeGameTime(const UObject* WorldContextObject);
 
 };

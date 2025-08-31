@@ -8,9 +8,46 @@
 #include "EWTimeManager.generated.h"
 
 class AEWCharacterBase;
+class AEWUnitBase;
 
 // 时间暂停委托
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTimePausedChanged, bool, bIsPaused);
+
+// Actor时间暂停管理结构
+USTRUCT()
+struct FTimePauseActorGroup
+{
+	GENERATED_BODY()
+
+	// 免疫时间暂停的玩家角色列表
+	UPROPERTY()
+	TArray<TWeakObjectPtr<AEWCharacterBase>> ImmunePlayers;
+
+	// 敏感时间暂停的单位列表
+	UPROPERTY()
+	TArray<TWeakObjectPtr<AEWUnitBase>> SensitiveUnits;
+
+	// 免疫时间暂停的单位列表
+	UPROPERTY()
+	TArray<TWeakObjectPtr<AEWUnitBase>> ImmuneUnits;
+
+	// 敏感时间暂停的其他Actor列表
+	UPROPERTY()
+	TArray<TWeakObjectPtr<AActor>> SensitiveActors;
+
+	// 免疫时间暂停的其他Actor列表
+	UPROPERTY()
+	TArray<TWeakObjectPtr<AActor>> ImmuneActors;
+
+	// 清理无效引用
+	void CleanupInvalidReferences();
+
+	// 获取所有敏感Actor的数量
+	int32 GetSensitiveActorCount() const;
+
+	// 获取所有免疫Actor的数量
+	int32 GetImmuneActorCount() const;
+};
 
 /**
  * 时间管理器子系统
@@ -44,14 +81,20 @@ public:
 
 	// 注册/注销需要受时间影响的Actor
 	UFUNCTION(BlueprintCallable, Category = "Time Management")
-	void RegisterTimeSensitiveActor(AActor* Actor);
+	void RegisterTimeAffectedActor(AActor* Actor);
 
 	UFUNCTION(BlueprintCallable, Category = "Time Management")
-	void UnregisterTimeSensitiveActor(AActor* Actor);
+	void UnregisterTimeAffectedActor(AActor* Actor);
 
-	// 检查Actor是否免疫时间暂停
+	// 处理Actor时间暂停免疫状态变化
+	void OnActorTimePauseImmuneStatusChanged(AActor* Actor, bool bIsImmune);
+
+	// 获取统计信息
 	UFUNCTION(BlueprintCallable, Category = "Time Management")
-	bool IsActorImmuneToTimePause(AActor* Actor) const;
+	int32 GetTotalSensitiveActorCount() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Time Management")
+	int32 GetTotalImmuneActorCount() const;
 
 	// 委托事件
 	UPROPERTY(BlueprintAssignable, Category = "Events")
@@ -62,17 +105,13 @@ protected:
 	UPROPERTY()
 	bool bIsTimePaused = false;
 
-	// 时间暂停发起者
+	// 时间暂停发起者，同一时间内应该只有一个时间暂停发起者
 	UPROPERTY()
 	AEWCharacterBase* TimePauseInstigator = nullptr;
 
-	// 已注册的时间敏感Actor列表
+	// 分类管理的Actor组
 	UPROPERTY()
-	TArray<TWeakObjectPtr<AActor>> TimeSensitiveActors;
-
-	// 免疫时间暂停的Actor列表
-	UPROPERTY()
-	TArray<TWeakObjectPtr<AActor>> ImmuneActors;
+	FTimePauseActorGroup ActorGroups;
 
 	// 保存的原始时间缩放值
 	TMap<TWeakObjectPtr<AActor>, float> OriginalTimeDilations;
@@ -91,6 +130,10 @@ protected:
 
 	// 清理无效的弱引用
 	void CleanupInvalidReferences();
+
+	// 内部注册函数
+	void RegisterCharacterBase(AEWCharacterBase* Character);
+	void RegisterOtherActors(AActor* Actor);
 
 	// 世界Tick回调
 	FDelegateHandle TickDelegateHandle;
